@@ -38,7 +38,6 @@ public class WebServer {
 			config.enableCorsForAllOrigins();
 		}).start(5555);
 
-		EndpointsV1.setup();
 		EndpointsV2.setup();
 	}
 
