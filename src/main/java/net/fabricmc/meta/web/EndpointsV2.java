@@ -39,11 +39,11 @@ public class EndpointsV2 {
 		WebServer.jsonGet("/v2/versions", () -> FabricMeta.database);
 
 		WebServer.jsonGet("/v2/versions/game", () -> FabricMeta.database.game);
-		WebServer.jsonGet("/v2/versions/game/yarn", () -> compatibleGameVersions(FabricMeta.database.mappings, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
+		WebServer.jsonGet("/v2/versions/game/feather", () -> compatibleGameVersions(FabricMeta.database.mappings, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
 		WebServer.jsonGet("/v2/versions/game/intermediary", () -> compatibleGameVersions(FabricMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
 
-		WebServer.jsonGet("/v2/versions/yarn", context -> withLimitSkip(context, FabricMeta.database.mappings));
-		WebServer.jsonGet("/v2/versions/yarn/:game_version", context -> withLimitSkip(context, filter(context, FabricMeta.database.mappings)));
+		WebServer.jsonGet("/v2/versions/feather", context -> withLimitSkip(context, FabricMeta.database.mappings));
+		WebServer.jsonGet("/v2/versions/feather/:game_version", context -> withLimitSkip(context, filter(context, FabricMeta.database.mappings)));
 
 		WebServer.jsonGet("/v2/versions/intermediary", () -> FabricMeta.database.intermediary);
 		WebServer.jsonGet("/v2/versions/intermediary/:game_version", context -> filter(context, FabricMeta.database.intermediary));
