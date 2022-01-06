@@ -31,29 +31,18 @@ public class MinecraftLauncherMeta {
 
 	List<Version> versions;
 
-	private MinecraftLauncherMeta() {
-	}
-
 	private MinecraftLauncherMeta(List<Version> versions) {
 		this.versions = versions;
 	}
 
 	public static MinecraftLauncherMeta getMeta() throws IOException {
-		String url = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
-		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
-		return GSON.fromJson(json, MinecraftLauncherMeta.class);
-	}
-
-	public static MinecraftLauncherMeta getExperimentalMeta() throws IOException {
-		String url = "https://maven.fabricmc.net/net/minecraft/experimental_versions.json";
+		String url = "https://skyrising.github.io/mc-versions/version_manifest.json";
 		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
 		return GSON.fromJson(json, MinecraftLauncherMeta.class);
 	}
 
 	public static MinecraftLauncherMeta getAllMeta() throws IOException {
-		List<Version> versions = new ArrayList<>();
-		versions.addAll(getMeta().versions);
-		versions.addAll(getExperimentalMeta().versions);
+		List<Version> versions = new ArrayList<>(getMeta().versions);
 
 		// Order by release time
 		versions.sort(Comparator.comparing(Version::getReleaseTime).reversed());

@@ -17,6 +17,7 @@
 package net.fabricmc.meta.utils;
 
 import com.google.gson.JsonObject;
+import net.fabricmc.meta.data.VersionDatabase;
 import net.fabricmc.meta.web.WebServer;
 import net.fabricmc.meta.web.models.LoaderInfoBase;
 import org.apache.commons.io.FileUtils;
@@ -30,7 +31,6 @@ import java.net.URL;
 public class LoaderMeta {
 
 	public static final File BASE_DIR = new File("metadata");
-	public static final String MAVEN_URL = "https://maven.fabricmc.net/";
 
 	public static JsonObject getMeta(LoaderInfoBase loaderInfo){
 		String loaderMaven = loaderInfo.getLoader().getMaven();
@@ -41,7 +41,7 @@ public class LoaderMeta {
 		File launcherMetaFile = new File(BASE_DIR, path + "/" + filename);
 		if(!launcherMetaFile.exists()){
 			try {
-				String url = String.format("%s%s/%s", MAVEN_URL, path, filename);
+				String url = String.format("%s%s/%s", VersionDatabase.FABRIC_MAVEN_URL, path, filename);
 				System.out.println("Downloading " + url);
 				FileUtils.copyURLToFile(new URL(url), launcherMetaFile);
 			} catch (IOException e) {

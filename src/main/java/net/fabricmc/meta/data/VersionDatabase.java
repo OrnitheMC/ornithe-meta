@@ -34,7 +34,7 @@ public class VersionDatabase {
 	public static final String COPETAN_MAVEN_URL = "https://copetan.jfrog.io/artifactory/minecraft-maven/";
 
 	public static final PomParser MAPPINGS_PARSER = new PomParser(COPETAN_MAVEN_URL + "me/copetan/feather/maven-metadata.xml");
-	public static final PomParser INTERMEDIARY_PARSER = new PomParser(COPETAN_MAVEN_URL + "net/fabricmc/intermediary/maven-metadata.xml");
+	public static final PomParser INTERMEDIARY_PARSER = new PomParser(COPETAN_MAVEN_URL + "me/copetan/intermediary/maven-metadata.xml");
 	public static final PomParser LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-installer/maven-metadata.xml");
 
@@ -51,7 +51,7 @@ public class VersionDatabase {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
 		database.mappings = MAPPINGS_PARSER.getMeta(MavenBuildGameVersion::new, "me.copetan:feather:");
-		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "net.fabricmc:intermediary:");
+		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "me.copetan:intermediary:");
 		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
