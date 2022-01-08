@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,9 +16,22 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web.models;
+package net.ornithemc.meta.web.models;
 
-public interface LoaderInfoBase {
+public class MavenVersion extends BaseVersion {
 
-	MavenBuildVersion getLoader();
+	String maven;
+
+	public MavenVersion(String maven, boolean stable) {
+		super(maven.split(":")[2], stable);
+		this.maven = maven;
+	}
+
+	public MavenVersion(String maven) {
+		this(maven, false);
+	}
+
+	public String getMaven() {
+		return maven;
+	}
 }

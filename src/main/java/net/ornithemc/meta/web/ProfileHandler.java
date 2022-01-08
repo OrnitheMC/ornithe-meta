@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +16,7 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web;
+package net.ornithemc.meta.web;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,11 +35,10 @@ import java.util.zip.ZipOutputStream;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.fabricmc.meta.data.VersionDatabase;
+import net.ornithemc.meta.data.VersionDatabase;
 import org.apache.commons.io.IOUtils;
 
-import net.fabricmc.meta.utils.LoaderMeta;
-import net.fabricmc.meta.web.models.LoaderInfoV2;
+import net.ornithemc.meta.web.models.LoaderInfoV2;
 
 public class ProfileHandler {
 
@@ -116,6 +117,12 @@ public class ProfileHandler {
 		JsonArray libraries = (JsonArray) librariesObject.get("common");
 		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.COPETAN_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.FABRIC_MAVEN_URL));
+
+		if (info.getIntermediary().getVersion()
+				.matches("(1\\.([7-9]|1[01])(\\.([1-9]0?))?)|(1([4-6]w[0-5][0-9][a-e]))|(13w(39|[45][0-9])[a-e])")) {
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.17.0", "https://repo1.maven.org/maven2/"));
+			libraries.add(getLibrary("com.mojang:log4j2file:1.0.0", VersionDatabase.COPETAN_MAVEN_URL));
+		}
 
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());

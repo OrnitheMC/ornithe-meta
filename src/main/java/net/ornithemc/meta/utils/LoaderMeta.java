@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,12 +16,12 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.utils;
+package net.ornithemc.meta.utils;
 
 import com.google.gson.JsonObject;
-import net.fabricmc.meta.data.VersionDatabase;
-import net.fabricmc.meta.web.WebServer;
-import net.fabricmc.meta.web.models.LoaderInfoBase;
+import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.web.WebServer;
+import net.ornithemc.meta.web.models.LoaderInfoBase;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

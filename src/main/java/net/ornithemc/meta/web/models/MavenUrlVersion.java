@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,26 +16,23 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web.models;
+package net.ornithemc.meta.web.models;
 
-import net.fabricmc.meta.utils.YarnVersionParser;
+import net.ornithemc.meta.data.VersionDatabase;
 
-public class MavenBuildGameVersion extends MavenBuildVersion {
+public class MavenUrlVersion extends MavenVersion {
 
-	String gameVersion;
+    public final String url;
 
-	public MavenBuildGameVersion(String maven) {
-		super(maven);
-		gameVersion = new YarnVersionParser(maven.split(":")[2]).getMinecraftVersion();
-
-	}
-
-	public String getGameVersion() {
-		return gameVersion;
-	}
-
-	@Override
-	public boolean test(String s) {
-		return getGameVersion().equals(s);
-	}
+    public MavenUrlVersion(String maven) {
+        super(maven);
+        String[] split = maven.split(":");
+        this.url = String.format("%s%s/%s/%s/%s-%s.jar", VersionDatabase.FABRIC_MAVEN_URL,
+                split[0].replaceAll("\\.", "/"),
+                split[1],
+                split[2],
+                split[1],
+                split[2]
+        );
+    }
 }

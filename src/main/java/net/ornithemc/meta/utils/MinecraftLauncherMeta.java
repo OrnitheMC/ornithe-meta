@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +16,7 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.utils;
+package net.ornithemc.meta.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

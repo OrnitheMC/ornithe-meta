@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,23 +16,34 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web.models;
+package net.ornithemc.meta.web.models;
 
-import net.fabricmc.meta.data.VersionDatabase;
+import java.util.function.Predicate;
 
-public class MavenUrlVersion extends MavenVersion {
+public class BaseVersion implements Predicate<String> {
 
-    public final String url;
+	String version;
+	boolean stable = false;
 
-    public MavenUrlVersion(String maven) {
-        super(maven);
-        String[] split = maven.split(":");
-        this.url = String.format("%s%s/%s/%s/%s-%s.jar", VersionDatabase.FABRIC_MAVEN_URL,
-                split[0].replaceAll("\\.", "/"),
-                split[1],
-                split[2],
-                split[1],
-                split[2]
-        );
-    }
+	public BaseVersion(String version, boolean stable) {
+		this.version = version;
+		this.stable = stable;
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public boolean isStable() {
+		return stable;
+	}
+
+	public void setStable(boolean stable) {
+		this.stable = stable;
+	}
+
+	@Override
+	public boolean test(String s) {
+		return version.equals(s);
+	}
 }

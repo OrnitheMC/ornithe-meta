@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,10 +16,10 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web.models;
+package net.ornithemc.meta.web.models;
 
 import com.google.gson.JsonObject;
-import net.fabricmc.meta.utils.LoaderMeta;
+import net.ornithemc.meta.utils.LoaderMeta;
 import org.jetbrains.annotations.Nullable;
 
 public class LoaderInfoV2 implements LoaderInfoBase {

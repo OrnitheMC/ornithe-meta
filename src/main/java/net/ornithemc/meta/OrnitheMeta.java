@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,10 +16,10 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta;
+package net.ornithemc.meta;
 
-import net.fabricmc.meta.data.VersionDatabase;
-import net.fabricmc.meta.web.WebServer;
+import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.web.WebServer;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
@@ -25,7 +27,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class FabricMeta {
+public class OrnitheMeta
+{
 
 	public static volatile VersionDatabase database;
 
@@ -34,7 +37,7 @@ public class FabricMeta {
 		update();
 
 		ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-		executorService.scheduleAtFixedRate(FabricMeta::update, 1, 1, TimeUnit.MINUTES);
+		executorService.scheduleAtFixedRate(OrnitheMeta::update, 1, 1, TimeUnit.MINUTES);
 
 		WebServer.start();
 	}

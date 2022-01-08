@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,12 +16,15 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web;
+package net.ornithemc.meta.web;
 
 import io.javalin.core.util.Header;
 import io.javalin.http.Context;
-import net.fabricmc.meta.FabricMeta;
-import net.fabricmc.meta.web.models.*;
+import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.LoaderInfoV2;
+import net.ornithemc.meta.web.models.MavenBuildVersion;
+import net.ornithemc.meta.web.models.MavenVersion;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -36,23 +41,19 @@ public class EndpointsV2 {
 
 	public static void setup() {
 
-		WebServer.jsonGet("/v2/versions", () -> FabricMeta.database);
+		WebServer.jsonGet("/v2/versions", () -> OrnitheMeta.database);
 
-		WebServer.jsonGet("/v2/versions/game", () -> FabricMeta.database.game);
-		WebServer.jsonGet("/v2/versions/game/feather", () -> compatibleGameVersions(FabricMeta.database.mappings, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
-		WebServer.jsonGet("/v2/versions/game/intermediary", () -> compatibleGameVersions(FabricMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		WebServer.jsonGet("/v2/versions/game", () -> OrnitheMeta.database.game);
+		WebServer.jsonGet("/v2/versions/game/intermediary", () -> compatibleGameVersions(OrnitheMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
 
-		WebServer.jsonGet("/v2/versions/feather", context -> withLimitSkip(context, FabricMeta.database.mappings));
-		WebServer.jsonGet("/v2/versions/feather/:game_version", context -> withLimitSkip(context, filter(context, FabricMeta.database.mappings)));
+		WebServer.jsonGet("/v2/versions/intermediary", () -> OrnitheMeta.database.intermediary);
+		WebServer.jsonGet("/v2/versions/intermediary/:game_version", context -> filter(context, OrnitheMeta.database.intermediary));
 
-		WebServer.jsonGet("/v2/versions/intermediary", () -> FabricMeta.database.intermediary);
-		WebServer.jsonGet("/v2/versions/intermediary/:game_version", context -> filter(context, FabricMeta.database.intermediary));
-
-		WebServer.jsonGet("/v2/versions/loader", context -> withLimitSkip(context, FabricMeta.database.getLoader()));
+		WebServer.jsonGet("/v2/versions/loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader()));
 		WebServer.jsonGet("/v2/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV2.getLoaderInfoAll(context)));
 		WebServer.jsonGet("/v2/versions/loader/:game_version/:loader_version", EndpointsV2::getLoaderInfo);
 
-		WebServer.jsonGet("/v2/versions/installer", context -> withLimitSkip(context, FabricMeta.database.installer));
+		WebServer.jsonGet("/v2/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
 		ProfileHandler.setup();
 	}
@@ -92,11 +93,11 @@ public class EndpointsV2 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = FabricMeta.database.getAllLoader().stream()
+		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader().stream()
 			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
 			.findFirst().orElse(null);
 
-		MavenVersion mappings = FabricMeta.database.intermediary.stream()
+		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -117,7 +118,7 @@ public class EndpointsV2 {
 		}
 		String gameVersion = context.pathParam("game_version");
 
-		MavenVersion mappings = FabricMeta.database.intermediary.stream()
+		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -127,7 +128,7 @@ public class EndpointsV2 {
 
 		List<LoaderInfoV2> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : FabricMeta.database.getLoader()){
+		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader()){
 			infoList.add(new LoaderInfoV2(loader, mappings).populateMeta());
 		}
 		return infoList;

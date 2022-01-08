@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,11 +16,14 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.data;
+package net.ornithemc.meta.data;
 
-import net.fabricmc.meta.utils.MinecraftLauncherMeta;
-import net.fabricmc.meta.utils.PomParser;
-import net.fabricmc.meta.web.models.*;
+import net.ornithemc.meta.utils.MinecraftLauncherMeta;
+import net.ornithemc.meta.utils.PomParser;
+import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.MavenBuildVersion;
+import net.ornithemc.meta.web.models.MavenUrlVersion;
+import net.ornithemc.meta.web.models.MavenVersion;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
@@ -33,13 +38,11 @@ public class VersionDatabase {
 	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
 	public static final String COPETAN_MAVEN_URL = "https://copetan.jfrog.io/artifactory/minecraft-maven/";
 
-	public static final PomParser MAPPINGS_PARSER = new PomParser(COPETAN_MAVEN_URL + "me/copetan/feather/maven-metadata.xml");
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(COPETAN_MAVEN_URL + "me/copetan/intermediary/maven-metadata.xml");
 	public static final PomParser LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-installer/maven-metadata.xml");
 
 	public List<BaseVersion> game;
-	public List<MavenBuildGameVersion> mappings;
 	public List<MavenVersion> intermediary;
 	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
@@ -50,7 +53,6 @@ public class VersionDatabase {
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
-		database.mappings = MAPPINGS_PARSER.getMeta(MavenBuildGameVersion::new, "me.copetan:feather:");
 		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "me.copetan:intermediary:");
 		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
 			for (BaseVersion version : list) {
@@ -67,7 +69,7 @@ public class VersionDatabase {
 	}
 
 	private void loadMcData() throws IOException {
-		if (mappings == null || intermediary == null) {
+		if (intermediary == null) {
 			throw new RuntimeException("Mappings are null");
 		}
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();

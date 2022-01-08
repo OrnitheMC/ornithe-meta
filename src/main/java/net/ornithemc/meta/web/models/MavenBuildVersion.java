@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2019 FabricMC
  *
+ * Modifications copyright (c) 2022 OrnitheMC
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,34 +16,31 @@
  * limitations under the License.
  */
 
-package net.fabricmc.meta.web.models;
+package net.ornithemc.meta.web.models;
 
-import java.util.function.Predicate;
+public class MavenBuildVersion extends MavenVersion {
 
-public class BaseVersion implements Predicate<String> {
+	String separator;
+	int build;
 
-	String version;
-	boolean stable = false;
+	public MavenBuildVersion(String maven) {
+		super(maven);
+		String version = maven.split(":")[2];
 
-	public BaseVersion(String version, boolean stable) {
-		this.version = version;
-		this.stable = stable;
+		if (version.contains("+build.")) {
+			separator = "+build.";
+		} else {
+			separator = ".";
+		}
+		build = Integer.parseInt(version.substring(version.lastIndexOf(".") + 1));
+
 	}
 
-	public String getVersion() {
-		return version;
+	public String getSeparator() {
+		return separator;
 	}
 
-	public boolean isStable() {
-		return stable;
-	}
-
-	public void setStable(boolean stable) {
-		this.stable = stable;
-	}
-
-	@Override
-	public boolean test(String s) {
-		return version.equals(s);
+	public int getBuild() {
+		return build;
 	}
 }
