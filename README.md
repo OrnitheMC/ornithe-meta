@@ -4,7 +4,7 @@ Ornithe Meta is a JSON HTTP API that can be used to query metadata about Ornithe
 
 It can be used by tools or launchers that wish to query version information about Ornithe.
 
-Hosted at [http://meta.copetan.me/](http://meta.copetan.me/)
+Hosted at [https://meta.ornithemc.net/](https://meta.ornithemc.net/)
 
 ## Endpoints
 
