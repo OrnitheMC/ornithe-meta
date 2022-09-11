@@ -74,7 +74,7 @@ publishing {
 task checkVersion {
 	doFirst {
 		try {
-			def xml = new URL("https://copetan.jfrog.io/artifactory/minecraft-maven/net/ornithe/ornithe-meta/maven-metadata.xml").text
+			def xml = new URL("https://maven.ornithemc.net/releases/net/ornithemc/ornithe-meta/maven-metadata.xml").text
 		} catch (FileNotFoundException ignored) {
 			return
 		}
