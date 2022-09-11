@@ -25,14 +25,14 @@ import org.jetbrains.annotations.Nullable;
 public class LoaderInfoV2 implements LoaderInfoBase {
 
 	MavenBuildVersion loader;
-	MavenVersion intermediary;
+	MavenVersion calamus;
 
 	@Nullable
 	JsonObject launcherMeta;
 
-	public LoaderInfoV2(MavenBuildVersion loader, MavenVersion intermediary) {
+	public LoaderInfoV2(MavenBuildVersion loader, MavenVersion calamus) {
 		this.loader = loader;
-		this.intermediary = intermediary;
+		this.calamus = calamus;
 	}
 
 	public LoaderInfoV2 populateMeta() {
@@ -45,8 +45,8 @@ public class LoaderInfoV2 implements LoaderInfoBase {
 		return loader;
 	}
 
-	public MavenVersion getIntermediary() {
-		return intermediary;
+	public MavenVersion getCalamus() {
+		return calamus;
 	}
 
 	@Nullable

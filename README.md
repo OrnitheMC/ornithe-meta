@@ -35,9 +35,9 @@ Lists all of the supported game versions.
 ]
 ```
 
-### /v2/versions/game/intermediary
+### /v2/versions/game/calamus
 
-Lists all of the compatible game versions for intermediary.
+Lists all of the compatible game versions for calamus.
 
 ```json
 [
@@ -52,33 +52,33 @@ Lists all of the compatible game versions for intermediary.
 ]
 ```
 
-### /v2/versions/intermediary
+### /v2/versions/calamus
 
-Lists all of the intermediary versions, stable is based of the Minecraft version.
+Lists all of the calamus mappings versions, stable is based of the Minecraft version.
 
 ```json
 [
   {
-    "maven": "me.copetan:intermediary:13w41a",
+    "maven": "net.ornithemc:calamus:13w41a",
     "version": "13w41a",
     "stable": false
   },
   {
-    "maven": "me.copetan:intermediary:13w39b",
+    "maven": "net.ornithemc:calamus:13w39b",
     "version": "13w39b",
     "stable": false
   }
 ]
 ```
 
-### /v2/versions/intermediary/:game_version
+### /v2/versions/calamus/:game_version
 
-Lists all of the intermediary for the provided game version, there will only ever be 1.
+Lists all of the calamus mappings for the provided game version, there will only ever be 1.
 
 ```json
 [
   {
-    "maven": "me.copetan:intermediary:1.7.2",
+    "maven": "net.ornithemc:calamus:1.7.2",
     "version": "1.7.2",
     "stable": true
   }
@@ -92,52 +92,52 @@ Lists all of the loader versions.
 ```json
 [
   {
-    "separator": "+build.",
-    "build": 132,
-    "maven": "net.fabricmc:fabric-loader:0.4.2+build.132",
-    "version": "0.4.2+build.132",
+    "separator": ".",
+    "build": 1,
+    "maven": "net.ornithemc:ornithe-loader:0.1.1",
+    "version": "0.1.1",
     "stable": true
   },
   {
-    "separator": "+build.",
-    "build": 131,
-    "maven": "net.fabricmc:fabric-loader:0.4.2+build.131",
-    "version": "0.4.2+build.131",
-    "stable": false
+    "separator": ".",
+    "build": 2,
+    "maven": "net.ornithemc:ornithe-loader:0.1.0",
+    "version": "0.1.0",
+    "stable": true
   }
 ]
 ```
 
 ### /v2/versions/loader/:game_version
 
-This returns a list of all the compatible loader versions for a given version of the game, along with the best version of intermediary to use for that version.
+This returns a list of all the compatible loader versions for a given version of the game, along with the best version of calamus mappings to use for that version.
 
 ```json
 [
   {
     "loader": {
-      "separator": "+build.",
-      "build": 155,
-      "maven": "net.fabricmc:fabric-loader:0.4.8+build.155",
-      "version": "0.4.8+build.155",
+      "separator": ".",
+      "build": 1,
+      "maven": "net.ornithemc:ornithe-loader:0.1.1",
+      "version": "0.1.1",
       "stable": true
     },
-    "intermediary": {
-      "maven": "me.copetan:intermediary:1.7.2",
+    "calamus": {
+      "maven": "net.ornithemc:calamus:1.7.2",
       "version": "1.7.2",
       "stable": true
     }
   },
   {
     "loader": {
-      "separator": "+build.",
-      "build": 154,
-      "maven": "net.fabricmc:fabric-loader:0.4.8+build.154",
-      "version": "0.4.8+build.154",
-      "stable": false
+      "separator": ".",
+      "build": 2,
+      "maven": "net.ornithemc:ornithe-loader:0.1.0",
+      "version": "0.1.0",
+      "stable": true
     },
-    "intermediary": {
-      "maven": "me.copetan:intermediary:1.7.2",
+    "calamus": {
+      "maven": "net.ornithemc:calamus:1.7.2",
       "version": "1.7.2",
       "stable": true
     }
@@ -147,21 +147,21 @@ This returns a list of all the compatible loader versions for a given version of
 
 ### /v2/versions/loader/:game_version/:loader_version
 
-This returns the best intermediary for the supplied Minecraft version, as well as the details for the supplied loader version. This should be used if you want to install a specific version of loader along with some intermediary for a specific game version.
+This returns the best calamus mappings for the supplied Minecraft version, as well as the details for the supplied loader version. This should be used if you want to install a specific version of loader along with some calamus mappings for a specific game version.
 
-Since version 0.1.1 `launcherMeta` is now included, this can be used to get the libraries required by fabric-loader as well as the main class for each side.
+Since version 0.1.1 `launcherMeta` is now included, this can be used to get the libraries required by ornithe-loader as well as the main class for each side.
 
 ```json
 {
   "loader": {
-    "separator": "+build.",
-    "build": 155,
-    "maven": "net.fabricmc:fabric-loader:0.4.8+build.155",
-    "version": "0.4.8+build.155",
+    "separator": ".",
+    "build": 1,
+    "maven": "net.ornithemc:ornithe-loader:0.1.1",
+    "version": "0.1.1",
     "stable": true
   },
-  "intermediary": {
-    "maven": "net.fabricmc:intermediary:1.7.2",
+  "calamus": {
+    "maven": "net.ornithemc:calamus:1.7.2",
     "version": "1.7.2",
     "stable": true
   },
@@ -169,61 +169,58 @@ Since version 0.1.1 `launcherMeta` is now included, this can be used to get the 
     "version": 1,
     "libraries": {
       "client": [
-        
       ],
       "common": [
         {
-          "name": "net.fabricmc:tiny-mappings-parser:0.1.1.8",
+          "name": "net.minecraft:launchwrapper:1.12"
+        },
+        {
+          "name": "net.ornithemc:nester:0.2.5",
+          "url": "https://maven.ornithemc.net/releases"
+        },
+        {
+          "name": "net.fabricmc:tiny-mappings-parser:0.3.0+build.17",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "net.fabricmc:sponge-mixin:0.7.11.36",
+          "name": "net.fabricmc:sponge-mixin:0.11.4+mixin.0.8.5",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "net.fabricmc:tiny-remapper:0.1.0.33",
+          "name": "net.fabricmc:tiny-remapper:0.8.2",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "net.fabricmc:fabric-loader-sat4j:2.3.5.4",
+          "name": "net.fabricmc:access-widener:2.1.0",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "com.google.jimfs:jimfs:1.1",
+          "name": "org.ow2.asm:asm:9.3",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "org.ow2.asm:asm:7.1",
+          "name": "org.ow2.asm:asm-analysis:9.3",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "org.ow2.asm:asm-analysis:7.1",
+          "name": "org.ow2.asm:asm-commons:9.3",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "org.ow2.asm:asm-commons:7.1",
+          "name": "org.ow2.asm:asm-tree:9.3",
           "url": "https://maven.fabricmc.net/"
         },
         {
-          "name": "org.ow2.asm:asm-tree:7.1",
-          "url": "https://maven.fabricmc.net/"
-        },
-        {
-          "name": "org.ow2.asm:asm-util:7.1",
+          "name": "org.ow2.asm:asm-util:9.3",
           "url": "https://maven.fabricmc.net/"
         }
       ],
       "server": [
-        {
-          "_comment": "jimfs in fabric-server-launch requires guava on the system classloader",
-          "name": "com.google.guava:guava:21.0",
-          "url": "https://maven.fabricmc.net/"
-        }
       ]
     },
     "mainClass": {
-      "client": "net.fabricmc.loader.launch.knot.KnotClient",
-      "server": "net.fabricmc.loader.launch.knot.KnotServer"
+      "client": "net.ornithemc.loader.launch.knot.KnotClient",
+      "server": "net.ornithemc.loader.launch.knot.KnotServer"
     }
   }
 }

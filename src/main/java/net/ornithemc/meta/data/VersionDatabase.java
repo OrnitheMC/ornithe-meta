@@ -35,15 +35,14 @@ import java.util.stream.Collectors;
 
 public class VersionDatabase {
 
-	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
-	public static final String COPETAN_MAVEN_URL = "https://copetan.jfrog.io/artifactory/minecraft-maven/";
+	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
-	public static final PomParser INTERMEDIARY_PARSER = new PomParser(COPETAN_MAVEN_URL + "me/copetan/intermediary/maven-metadata.xml");
-	public static final PomParser LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
-	public static final PomParser INSTALLER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-installer/maven-metadata.xml");
+	public static final PomParser CALAMUS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus/maven-metadata.xml");
+	public static final PomParser LOADER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-loader/maven-metadata.xml");
+	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 
 	public List<BaseVersion> game;
-	public List<MavenVersion> intermediary;
+	public List<MavenVersion> calamus;
 	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
 
@@ -53,8 +52,8 @@ public class VersionDatabase {
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
-		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "me.copetan:intermediary:");
-		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
+		database.calamus = CALAMUS_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus:");
+		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.ornithemc:ornithe-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
 					version.setStable(true);
@@ -62,25 +61,25 @@ public class VersionDatabase {
 				}
 			}
 		});
-		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.fabricmc:fabric-installer:");
+		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer:");
 		database.loadMcData();
 		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
 		return database;
 	}
 
 	private void loadMcData() throws IOException {
-		if (intermediary == null) {
+		if (calamus == null) {
 			throw new RuntimeException("Mappings are null");
 		}
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
 
 		//Sorts in the order of minecraft release dates
-		intermediary = new ArrayList<>(intermediary);
-		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
-		intermediary.forEach(version -> version.setStable(true));
+		calamus = new ArrayList<>(calamus);
+		calamus.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		calamus.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
-		intermediary.removeIf(o -> {
+		calamus.removeIf(o -> {
 			if (launcherMeta.getVersions().stream().noneMatch(version -> version.getId().equals(o.getVersion()))) {
 				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version");
 				return true;
@@ -89,7 +88,7 @@ public class VersionDatabase {
 		});
 
 		List<String> minecraftVersions = new ArrayList<>();
-		for (MavenVersion gameVersion : intermediary) {
+		for (MavenVersion gameVersion : calamus) {
 			if (!minecraftVersions.contains(gameVersion.getVersion())) {
 				minecraftVersions.add(gameVersion.getVersion());
 			}

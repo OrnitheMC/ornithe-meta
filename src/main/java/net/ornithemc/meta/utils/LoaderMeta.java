@@ -43,7 +43,7 @@ public class LoaderMeta {
 		File launcherMetaFile = new File(BASE_DIR, path + "/" + filename);
 		if(!launcherMetaFile.exists()){
 			try {
-				String url = String.format("%s%s/%s", VersionDatabase.FABRIC_MAVEN_URL, path, filename);
+				String url = String.format("%s%s/%s", VersionDatabase.ORNITHE_MAVEN_URL, path, filename);
 				System.out.println("Downloading " + url);
 				FileUtils.copyURLToFile(new URL(url), launcherMetaFile);
 			} catch (IOException e) {

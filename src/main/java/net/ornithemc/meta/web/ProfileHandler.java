@@ -61,7 +61,7 @@ public class ProfileHandler {
 	}
 
 	private static String getJsonFileName(LoaderInfoV2 info, String ext) {
-		return String.format("fabric-loader-%s-%s.%s", info.getLoader().getVersion(), info.getIntermediary().getVersion(), ext);
+		return String.format("ornithe-loader-%s-%s.%s", info.getLoader().getVersion(), info.getCalamus().getVersion(), ext);
 	}
 
 	private static CompletableFuture<InputStream> profileJson(LoaderInfoV2 info) {
@@ -78,7 +78,7 @@ public class ProfileHandler {
 	}
 
 	private static InputStream packageZip(LoaderInfoV2 info, InputStream profileJson)  {
-		String profileName = String.format("fabric-loader-%s-%s", info.getLoader().getVersion(), info.getIntermediary().getVersion());
+		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -110,18 +110,18 @@ public class ProfileHandler {
 	private static JsonObject buildProfileJson(LoaderInfoV2 info, String side) {
 		JsonObject launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("fabric-loader-%s-%s", info.getLoader().getVersion(), info.getIntermediary().getVersion());
+		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
 
 		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
-		// Build the libraries array with the existing libs + loader and intermediary
+		// Build the libraries array with the existing libs + loader and calamus
 		JsonArray libraries = (JsonArray) librariesObject.get("common");
-		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.COPETAN_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.FABRIC_MAVEN_URL));
+		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 
-		if (info.getIntermediary().getVersion()
+		if (info.getCalamus().getVersion()
 				.matches("(1\\.([7-9]|1[01])(\\.([1-9]0?))?)|(1([4-6]w[0-5][0-9][a-e]))|(13w(39|[45][0-9])[a-e])")) {
 			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.17.0", "https://repo1.maven.org/maven2/"));
-			libraries.add(getLibrary("com.mojang:log4j2file:1.0.0", VersionDatabase.COPETAN_MAVEN_URL));
+			libraries.add(getLibrary("com.mojang:log4j2file:1.0.0", VersionDatabase.ORNITHE_MAVEN_URL));
 		}
 
 		if (librariesObject.has(side)) {
@@ -132,7 +132,7 @@ public class ProfileHandler {
 
 		JsonObject profile = new JsonObject();
 		profile.addProperty("id", profileName);
-		profile.addProperty("inheritsFrom", info.getIntermediary().getVersion());
+		profile.addProperty("inheritsFrom", info.getCalamus().getVersion());
 		profile.addProperty("releaseTime", currentTime);
 		profile.addProperty("time", currentTime);
 		profile.addProperty("type", "release");
@@ -154,9 +154,9 @@ public class ProfileHandler {
 		arguments.add("game", new JsonArray());
 
 		if (side.equals("client")) {
-			// add '-DFabricMcEmu= net.minecraft.client.main.Main ' to emulate vanilla MC presence for programs that check the process command line (discord, nvidia hybrid gpu, ..)
+			// add '-DOrnitheMcEmu= net.minecraft.client.main.Main ' to emulate vanilla MC presence for programs that check the process command line (discord, nvidia hybrid gpu, ..)
 			JsonArray jvmArgs = new JsonArray();
-			jvmArgs.add("-DFabricMcEmu= net.minecraft.client.main.Main ");
+			jvmArgs.add("-DOrnitheMcEmu= net.minecraft.client.main.Main ");
 			arguments.add("jvm", jvmArgs);
 		}
 
