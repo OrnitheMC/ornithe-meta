@@ -38,8 +38,7 @@ public class WebServer {
 			config.registerPlugin(new RouteOverviewPlugin("/"));
 			config.showJavalinBanner = false;
 			config.enableCorsForAllOrigins();
-			// set to 5555 while testing
-		}).start(80);
+		}).start(5555); // set to 80 while testing
 
 		EndpointsV2.setup();
 	}
