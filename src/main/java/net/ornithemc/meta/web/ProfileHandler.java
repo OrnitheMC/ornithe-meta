@@ -118,12 +118,6 @@ public class ProfileHandler {
 		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 
-		if (info.getCalamus().getVersion()
-				.matches("(1\\.([7-9]|1[01])(\\.([1-9]0?))?)|(1([4-6]w[0-5][0-9][a-e]))|(13w(39|[45][0-9])[a-e])")) {
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.17.0", "https://repo1.maven.org/maven2/"));
-			libraries.add(getLibrary("com.mojang:log4j2file:1.0.0", VersionDatabase.ORNITHE_MAVEN_URL));
-		}
-
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
 		}
