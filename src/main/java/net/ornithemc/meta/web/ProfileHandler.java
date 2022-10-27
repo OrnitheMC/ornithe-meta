@@ -147,13 +147,6 @@ public class ProfileHandler {
 		// I believe this is required to stop the launcher from complaining
 		arguments.add("game", new JsonArray());
 
-		if (side.equals("client")) {
-			// add '-DOrnitheMcEmu= net.minecraft.client.main.Main ' to emulate vanilla MC presence for programs that check the process command line (discord, nvidia hybrid gpu, ..)
-			JsonArray jvmArgs = new JsonArray();
-			jvmArgs.add("-DOrnitheMcEmu= net.minecraft.client.main.Main ");
-			arguments.add("jvm", jvmArgs);
-		}
-
 		profile.add("arguments", arguments);
 
 		profile.add("libraries", libraries);
