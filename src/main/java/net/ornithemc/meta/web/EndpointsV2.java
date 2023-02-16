@@ -44,9 +44,13 @@ public class EndpointsV2 {
 
 		WebServer.jsonGet("/v2/versions/game", () -> OrnitheMeta.database.game);
 		WebServer.jsonGet("/v2/versions/game/calamus", () -> compatibleGameVersions(OrnitheMeta.database.calamus, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		WebServer.jsonGet("/v2/versions/game/intermediary", () -> compatibleGameVersions(OrnitheMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
 
 		WebServer.jsonGet("/v2/versions/calamus", () -> OrnitheMeta.database.calamus);
 		WebServer.jsonGet("/v2/versions/calamus/:game_version", context -> filter(context, OrnitheMeta.database.calamus));
+
+		WebServer.jsonGet("/v2/versions/intermediary", () -> OrnitheMeta.database.intermediary);
+		WebServer.jsonGet("/v2/versions/intermediary/:game_version", context -> filter(context, OrnitheMeta.database.intermediary));
 
 		WebServer.jsonGet("/v2/versions/loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader()));
 		WebServer.jsonGet("/v2/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV2.getLoaderInfoAll(context)));

@@ -38,11 +38,13 @@ public class VersionDatabase {
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
 	public static final PomParser CALAMUS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus/maven-metadata.xml");
+	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
 	public static final PomParser LOADER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> calamus;
+	public List<MavenVersion> intermediary;
 	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
 
@@ -53,6 +55,7 @@ public class VersionDatabase {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
 		database.calamus = CALAMUS_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus:");
+		database.intermediary = CALAMUS_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus-intermediary:");
 		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.ornithemc:ornithe-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
@@ -68,7 +71,7 @@ public class VersionDatabase {
 	}
 
 	private void loadMcData() throws IOException {
-		if (calamus == null) {
+		if (calamus == null || intermediary == null) {
 			throw new RuntimeException("Mappings are null");
 		}
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
@@ -77,6 +80,9 @@ public class VersionDatabase {
 		calamus = new ArrayList<>(calamus);
 		calamus.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
 		calamus.forEach(version -> version.setStable(true));
+		intermediary = new ArrayList<>(intermediary);
+		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		intermediary.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
 		calamus.removeIf(o -> {
@@ -86,9 +92,21 @@ public class VersionDatabase {
 			}
 			return false;
 		});
+		intermediary.removeIf(o -> {
+			if (launcherMeta.getVersions().stream().noneMatch(version -> version.getId().equals(o.getVersion()))) {
+				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version");
+				return true;
+			}
+			return false;
+		});
 
 		List<String> minecraftVersions = new ArrayList<>();
 		for (MavenVersion gameVersion : calamus) {
+			if (!minecraftVersions.contains(gameVersion.getVersion())) {
+				minecraftVersions.add(gameVersion.getVersion());
+			}
+		}
+		for (MavenVersion gameVersion : intermediary) {
 			if (!minecraftVersions.contains(gameVersion.getVersion())) {
 				minecraftVersions.add(gameVersion.getVersion());
 			}
