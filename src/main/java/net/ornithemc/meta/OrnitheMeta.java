@@ -19,6 +19,7 @@
 package net.ornithemc.meta;
 
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.data.VersionDatabaseOld;
 import net.ornithemc.meta.web.WebServer;
 
 import javax.xml.stream.XMLStreamException;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class OrnitheMeta
 {
 
+	public static volatile VersionDatabaseOld databaseOld;
 	public static volatile VersionDatabase database;
 
 	public static void main(String[] args) {
@@ -44,9 +46,10 @@ public class OrnitheMeta
 
 	private static void update(){
 		try {
+			databaseOld = VersionDatabaseOld.generate();
 			database = VersionDatabase.generate();
 		} catch (IOException | XMLStreamException e) {
-			if(database == null){
+			if(databaseOld == null || database == null){
 				throw new RuntimeException(e);
 			} else {
 				e.printStackTrace();

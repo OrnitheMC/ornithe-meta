@@ -22,7 +22,7 @@ import io.javalin.core.util.Header;
 import io.javalin.http.Context;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.web.models.BaseVersion;
-import net.ornithemc.meta.web.models.LoaderInfoV2;
+import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
@@ -36,25 +36,25 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class EndpointsV2 {
+public class EndpointsV3 {
 
 	public static void setup() {
 
-		WebServer.jsonGet("/v2/versions", () -> OrnitheMeta.databaseOld);
+		WebServer.jsonGet("/v3/versions", () -> OrnitheMeta.database);
 
-		WebServer.jsonGet("/v2/versions/game", () -> OrnitheMeta.databaseOld.game);
-		WebServer.jsonGet("/v2/versions/game/calamus", () -> compatibleGameVersions(OrnitheMeta.databaseOld.calamus, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		WebServer.jsonGet("/v3/versions/game", () -> OrnitheMeta.database.game);
+		WebServer.jsonGet("/v3/versions/game/intermediary", () -> compatibleGameVersions(OrnitheMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
 
-		WebServer.jsonGet("/v2/versions/calamus", () -> OrnitheMeta.databaseOld.calamus);
-		WebServer.jsonGet("/v2/versions/calamus/:game_version", context -> filter(context, OrnitheMeta.databaseOld.calamus));
+		WebServer.jsonGet("/v3/versions/intermediary", () -> OrnitheMeta.database.intermediary);
+		WebServer.jsonGet("/v3/versions/intermediary/:game_version", context -> filter(context, OrnitheMeta.database.intermediary));
 
-		WebServer.jsonGet("/v2/versions/loader", context -> withLimitSkip(context, OrnitheMeta.databaseOld.getLoader()));
-		WebServer.jsonGet("/v2/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV2.getLoaderInfoAll(context)));
-		WebServer.jsonGet("/v2/versions/loader/:game_version/:loader_version", EndpointsV2::getLoaderInfo);
+		WebServer.jsonGet("/v3/versions/loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader()));
+		WebServer.jsonGet("/v3/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV3.getLoaderInfoAll(context)));
+		WebServer.jsonGet("/v3/versions/loader/:game_version/:loader_version", EndpointsV3::getLoaderInfo);
 
-		WebServer.jsonGet("/v2/versions/installer", context -> withLimitSkip(context, OrnitheMeta.databaseOld.installer));
+		WebServer.jsonGet("/v3/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
-		ProfileHandlerV2.setup();
+		ProfileHandlerV3.setup();
 	}
 
 	private static <T> List<T> withLimitSkip(Context context, List<T> list) {
@@ -92,11 +92,11 @@ public class EndpointsV2 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = OrnitheMeta.databaseOld.getAllLoader().stream()
+		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader().stream()
 			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
 			.findFirst().orElse(null);
 
-		MavenVersion mappings = OrnitheMeta.databaseOld.calamus.stream()
+		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -108,7 +108,7 @@ public class EndpointsV2 {
 			context.status(400);
 			return "no mappings version found for " + gameVersion;
 		}
-		return new LoaderInfoV2(loader, mappings).populateMeta();
+		return new LoaderInfoV3(loader, mappings).populateMeta();
 	}
 
 	private static List<?> getLoaderInfoAll(Context context) {
@@ -117,7 +117,7 @@ public class EndpointsV2 {
 		}
 		String gameVersion = context.pathParam("game_version");
 
-		MavenVersion mappings = OrnitheMeta.databaseOld.calamus.stream()
+		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -125,10 +125,10 @@ public class EndpointsV2 {
 			return Collections.emptyList();
 		}
 
-		List<LoaderInfoV2> infoList = new ArrayList<>();
+		List<LoaderInfoV3> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : OrnitheMeta.databaseOld.getLoader()){
-			infoList.add(new LoaderInfoV2(loader, mappings).populateMeta());
+		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader()){
+			infoList.add(new LoaderInfoV3(loader, mappings).populateMeta());
 		}
 		return infoList;
 	}
@@ -146,14 +146,14 @@ public class EndpointsV2 {
 		return versions;
 	}
 
-	public static void fileDownload(String path, String ext, Function<LoaderInfoV2, String> fileNameFunction, Function<LoaderInfoV2, CompletableFuture<InputStream>> streamSupplier) {
-		WebServer.javalin.get("/v2/versions/loader/:game_version/:loader_version/" + path + "/" + ext, ctx -> {
+	public static void fileDownload(String path, String ext, Function<LoaderInfoV3, String> fileNameFunction, Function<LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
+		WebServer.javalin.get("/v3/versions/loader/:game_version/:loader_version/" + path + "/" + ext, ctx -> {
 			Object obj = getLoaderInfo(ctx);
 
 			if (obj instanceof String) {
 				ctx.result((String) obj);
-			} else if (obj instanceof LoaderInfoV2) {
-				LoaderInfoV2 versionInfo = (LoaderInfoV2) obj;
+			} else if (obj instanceof LoaderInfoV3) {
+				LoaderInfoV3 versionInfo = (LoaderInfoV3) obj;
 
 				CompletableFuture<InputStream> streamFuture = streamSupplier.apply(versionInfo);
 

@@ -35,21 +35,21 @@ import java.util.zip.ZipOutputStream;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.data.VersionDatabaseOld;
 import org.apache.commons.io.IOUtils;
 
 import net.ornithemc.meta.web.models.LoaderInfoV2;
 
-public class ProfileHandler {
+public class ProfileHandlerV2 {
 
 	private static final Executor EXECUTOR = Executors.newFixedThreadPool(2);
 	private static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	public static void setup() {
-		EndpointsV2.fileDownload("profile", "json", ProfileHandler::getJsonFileName, ProfileHandler::profileJson);
-		EndpointsV2.fileDownload("profile", "zip", ProfileHandler::getZipFileName, ProfileHandler::profileZip);
+		EndpointsV2.fileDownload("profile", "json", ProfileHandlerV2::getJsonFileName, ProfileHandlerV2::profileJson);
+		EndpointsV2.fileDownload("profile", "zip", ProfileHandlerV2::getZipFileName, ProfileHandlerV2::profileZip);
 
-		EndpointsV2.fileDownload("server", "json", ProfileHandler::getJsonFileName, ProfileHandler::serverJson);
+		EndpointsV2.fileDownload("server", "json", ProfileHandlerV2::getJsonFileName, ProfileHandlerV2::serverJson);
 	}
 
 	private static String getJsonFileName(LoaderInfoV2 info) {
@@ -115,8 +115,8 @@ public class ProfileHandler {
 		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
 		// Build the libraries array with the existing libs + loader and calamus
 		JsonArray libraries = (JsonArray) librariesObject.get("common");
-		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
 
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());

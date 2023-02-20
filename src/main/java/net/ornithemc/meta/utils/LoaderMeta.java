@@ -19,7 +19,7 @@
 package net.ornithemc.meta.utils;
 
 import com.google.gson.JsonObject;
-import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.data.VersionDatabaseOld;
 import net.ornithemc.meta.web.WebServer;
 import net.ornithemc.meta.web.models.LoaderInfoBase;
 import org.apache.commons.io.FileUtils;
@@ -43,7 +43,7 @@ public class LoaderMeta {
 		File launcherMetaFile = new File(BASE_DIR, path + "/" + filename);
 		if(!launcherMetaFile.exists()){
 			try {
-				String url = String.format("%s%s/%s", VersionDatabase.ORNITHE_MAVEN_URL, path, filename);
+				String url = String.format("%s%s/%s", VersionDatabaseOld.ORNITHE_MAVEN_URL, path, filename);
 				System.out.println("Downloading " + url);
 				FileUtils.copyURLToFile(new URL(url), launcherMetaFile);
 			} catch (IOException e) {

@@ -18,7 +18,7 @@
 
 package net.ornithemc.meta.web.models;
 
-import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.data.VersionDatabaseOld;
 
 public class MavenUrlVersion extends MavenVersion {
 
@@ -27,7 +27,7 @@ public class MavenUrlVersion extends MavenVersion {
     public MavenUrlVersion(String maven) {
         super(maven);
         String[] split = maven.split(":");
-        this.url = String.format("%s%s/%s/%s/%s-%s.jar", VersionDatabase.ORNITHE_MAVEN_URL,
+        this.url = String.format("%s%s/%s/%s/%s-%s.jar", VersionDatabaseOld.ORNITHE_MAVEN_URL,
                 split[0].replaceAll("\\.", "/"),
                 split[1],
                 split[2],

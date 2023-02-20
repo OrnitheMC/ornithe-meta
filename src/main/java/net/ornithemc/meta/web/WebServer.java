@@ -41,6 +41,7 @@ public class WebServer {
 		}).start(5555); // set to 80 while testing
 
 		EndpointsV2.setup();
+		EndpointsV3.setup();
 	}
 
 	public static <T> void jsonGet(String route, Supplier<T> supplier) {
