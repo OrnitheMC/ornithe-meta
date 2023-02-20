@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 public class VersionDatabase {
 
-	public static final String QUILT_MAVEN_URL = "https://maven.quiltmc.org/release/";
+	public static final String QUILT_MAVEN_URL = "https://maven.quiltmc.org/repository/release/";
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
