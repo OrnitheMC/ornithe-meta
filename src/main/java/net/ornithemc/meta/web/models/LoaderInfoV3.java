@@ -19,7 +19,7 @@
 package net.ornithemc.meta.web.models;
 
 import com.google.gson.JsonObject;
-import net.ornithemc.meta.utils.LoaderMeta;
+import net.ornithemc.meta.utils.LoaderMetaV3;
 import org.jetbrains.annotations.Nullable;
 
 public class LoaderInfoV3 implements LoaderInfoBase {
@@ -36,7 +36,7 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 	}
 
 	public LoaderInfoV3 populateMeta() {
-		launcherMeta = LoaderMeta.getMeta(this);
+		launcherMeta = LoaderMetaV3.getMeta(this);
 		return this;
 	}
 
