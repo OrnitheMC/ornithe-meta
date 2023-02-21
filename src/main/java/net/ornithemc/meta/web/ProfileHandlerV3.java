@@ -143,6 +143,11 @@ public class ProfileHandlerV3 {
 
 		profile.addProperty("mainClass", mainClass);
 
+		if ("server".equals(side) && launcherMeta.has("mainClass") && launcherMeta.get("mainClass").getAsJsonObject().has("serverLauncher")) {
+			// Add the server launch main class
+			profile.addProperty("launcherMainClass", launcherMeta.get("mainClass").getAsJsonObject().get("serverLauncher").getAsString());
+		}
+
 		JsonObject arguments = new JsonObject();
 
 		// I believe this is required to stop the launcher from complaining
