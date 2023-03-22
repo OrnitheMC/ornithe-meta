@@ -21,6 +21,7 @@ package net.ornithemc.meta.data;
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.PomParser;
 import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.MavenBuildGameVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenUrlVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
@@ -39,11 +40,13 @@ public class VersionDatabase {
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
+	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");
 	public static final PomParser LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> intermediary;
+	public List<MavenBuildGameVersion> feather;
 	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
 
@@ -54,6 +57,7 @@ public class VersionDatabase {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
 		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus-intermediary:");
+		database.feather = FEATHER_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:feather:");
 		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "org.quiltmc:quilt-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
@@ -69,7 +73,7 @@ public class VersionDatabase {
 	}
 
 	private void loadMcData() throws IOException {
-		if (intermediary == null) {
+		if (intermediary == null || feather == null) {
 			throw new RuntimeException("Mappings are null");
 		}
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();

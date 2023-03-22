@@ -23,6 +23,7 @@ import io.javalin.http.Context;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
+import net.ornithemc.meta.web.models.MavenBuildGameVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
@@ -44,9 +45,13 @@ public class EndpointsV3 {
 
 		WebServer.jsonGet("/v3/versions/game", () -> OrnitheMeta.database.game);
 		WebServer.jsonGet("/v3/versions/game/intermediary", () -> compatibleGameVersions(OrnitheMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		WebServer.jsonGet("/v3/versions/game/feather", () -> compatibleGameVersions(OrnitheMeta.database.feather, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
 
 		WebServer.jsonGet("/v3/versions/intermediary", () -> OrnitheMeta.database.intermediary);
 		WebServer.jsonGet("/v3/versions/intermediary/:game_version", context -> filter(context, OrnitheMeta.database.intermediary));
+
+		WebServer.jsonGet("/v3/versions/feather", context -> withLimitSkip(context, OrnitheMeta.database.feather));
+		WebServer.jsonGet("/v3/versions/feather/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.feather)));
 
 		WebServer.jsonGet("/v3/versions/loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader()));
 		WebServer.jsonGet("/v3/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV3.getLoaderInfoAll(context)));
