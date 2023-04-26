@@ -85,8 +85,15 @@ public class VersionDatabase {
 
 		// Remove entries that do not match a valid mc version.
 		intermediary.removeIf(o -> {
-			if (launcherMeta.getVersions().stream().noneMatch(version -> version.getId().equals(o.getVersion()))) {
-				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version");
+			String iVersion;
+			if (o.getVersion().endsWith("-client") || o.getVersion().endsWith("-server")) {
+				iVersion = o.getVersion().substring(0, o.getVersion().length() - 7);
+			} else {
+				iVersion = o.getVersion();
+			}
+
+			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
+				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v3)");
 				return true;
 			}
 			return false;
