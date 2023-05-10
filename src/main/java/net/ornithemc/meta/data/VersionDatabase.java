@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class VersionDatabase {
@@ -41,12 +42,14 @@ public class VersionDatabase {
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
 	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");
+	public static final PomParser NESTS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/nests/maven-metadata.xml");
 	public static final PomParser LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> intermediary;
 	public List<MavenBuildGameVersion> feather;
+	public List<MavenBuildGameVersion> nests;
 	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
 
@@ -58,6 +61,7 @@ public class VersionDatabase {
 		VersionDatabase database = new VersionDatabase();
 		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus-intermediary:");
 		database.feather = FEATHER_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:feather:");
+		database.nests = NESTS_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:nests:");
 		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "org.quiltmc:quilt-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
@@ -76,15 +80,22 @@ public class VersionDatabase {
 		if (intermediary == null || feather == null) {
 			throw new RuntimeException("Mappings are null");
 		}
+
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
 
-		//Sorts in the order of minecraft release dates
+		// Sorts in the order of minecraft release dates
 		intermediary = new ArrayList<>(intermediary);
 		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
 		intermediary.forEach(version -> version.setStable(true));
+		feather = new ArrayList<>(feather);
+		feather.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		feather.forEach(version -> version.setStable(true));
+		nests = new ArrayList<>(nests);
+		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		nests.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
-		intermediary.removeIf(o -> {
+		Predicate<MavenVersion> p = o -> {
 			String iVersion;
 			if (o.getVersion().endsWith("-client") || o.getVersion().endsWith("-server")) {
 				iVersion = o.getVersion().substring(0, o.getVersion().length() - 7);
@@ -97,7 +108,10 @@ public class VersionDatabase {
 				return true;
 			}
 			return false;
-		});
+		};
+		intermediary.removeIf(p);
+		feather.removeIf(p);
+		nests.removeIf(p);
 
 		List<String> minecraftVersions = new ArrayList<>();
 		for (MavenVersion gameVersion : intermediary) {
