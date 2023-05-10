@@ -95,7 +95,7 @@ public class VersionDatabase {
 		nests.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
-		Predicate<MavenVersion> p = o -> {
+		intermediary.removeIf(o -> {
 			String iVersion;
 			if (o.getVersion().endsWith("-client") || o.getVersion().endsWith("-server")) {
 				iVersion = o.getVersion().substring(0, o.getVersion().length() - 7);
@@ -104,12 +104,26 @@ public class VersionDatabase {
 			}
 
 			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
-				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v3)");
+				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v3 intermediary)");
+				return true;
+			}
+			return false;
+		});
+
+		Predicate<MavenBuildGameVersion> p = o -> {
+			String iVersion;
+			if (o.getGameVersion().endsWith("-client") || o.getGameVersion().endsWith("-server")) {
+				iVersion = o.getGameVersion().substring(0, o.getGameVersion().length() - 7);
+			} else {
+				iVersion = o.getGameVersion();
+			}
+
+			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
+				System.out.println("Removing " + o.getGameVersion() + " as it is not match an mc version (v3 Feather/nests)");
 				return true;
 			}
 			return false;
 		};
-		intermediary.removeIf(p);
 		feather.removeIf(p);
 		nests.removeIf(p);
 
