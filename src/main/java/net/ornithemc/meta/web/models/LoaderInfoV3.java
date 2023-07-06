@@ -49,6 +49,15 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 		return intermediary;
 	}
 
+	public String getGame(String side) {
+		String version = intermediary.getVersion();
+		if (version.endsWith(side)) {
+			version = version.substring(0, version.length() - (side.length() + 1));
+		}
+
+		return version;
+	}
+
 	@Nullable
 	public JsonObject getLauncherMeta() {
 		return launcherMeta;

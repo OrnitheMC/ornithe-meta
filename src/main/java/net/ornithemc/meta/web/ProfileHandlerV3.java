@@ -111,7 +111,7 @@ public class ProfileHandlerV3 {
 	private static JsonObject buildProfileJson(LoaderInfoV3 info, String side) {
 		JsonObject launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("quilt-loader-%s-%s", info.getLoader().getVersion(), info.getIntermediary().getVersion());
+		String profileName = String.format("quilt-loader-%s-%s", info.getLoader().getVersion(), info.getGame(side));
 
 		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
 		// Build the libraries array with the existing libs + loader and intermediary
@@ -127,7 +127,7 @@ public class ProfileHandlerV3 {
 
 		JsonObject profile = new JsonObject();
 		profile.addProperty("id", profileName);
-		profile.addProperty("inheritsFrom", info.getIntermediary().getVersion());
+		profile.addProperty("inheritsFrom", info.getGame(side));
 		profile.addProperty("releaseTime", currentTime);
 		profile.addProperty("time", currentTime);
 		profile.addProperty("type", "release");
