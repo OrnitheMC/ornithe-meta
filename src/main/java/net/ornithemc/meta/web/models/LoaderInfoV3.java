@@ -24,13 +24,15 @@ import org.jetbrains.annotations.Nullable;
 
 public class LoaderInfoV3 implements LoaderInfoBase {
 
+	LoaderType type;
 	MavenBuildVersion loader;
 	MavenVersion intermediary;
 
 	@Nullable
 	JsonObject launcherMeta;
 
-	public LoaderInfoV3(MavenBuildVersion loader, MavenVersion intermediary) {
+	public LoaderInfoV3(LoaderType type, MavenBuildVersion loader, MavenVersion intermediary) {
+		this.type = type;
 		this.loader = loader;
 		this.intermediary = intermediary;
 	}
@@ -38,6 +40,11 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 	public LoaderInfoV3 populateMeta() {
 		launcherMeta = LoaderMetaV3.getMeta(this);
 		return this;
+	}
+
+	@Override
+	public LoaderType getLoaderType() {
+		return type;
 	}
 
 	@Override

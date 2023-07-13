@@ -21,6 +21,7 @@ package net.ornithemc.meta.data;
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.PomParser;
 import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.LoaderType;
 import net.ornithemc.meta.web.models.MavenBuildGameVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenUrlVersion;
@@ -31,29 +32,35 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class VersionDatabase {
 
+	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
 	public static final String QUILT_MAVEN_URL = "https://maven.quiltmc.org/repository/release/";
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
 	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");
 	public static final PomParser NESTS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/nests/maven-metadata.xml");
-	public static final PomParser LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
+	public static final PomParser FABRIC_LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
+	public static final PomParser QUILT_LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
+
+	private final Map<LoaderType, List<MavenBuildVersion>> loader;
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> intermediary;
 	public List<MavenBuildGameVersion> feather;
 	public List<MavenBuildGameVersion> nests;
-	private List<MavenBuildVersion> loader;
 	public List<MavenUrlVersion> installer;
 
 	private VersionDatabase() {
+		this.loader = new EnumMap<>(LoaderType.class);
 	}
 
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
@@ -62,14 +69,22 @@ public class VersionDatabase {
 		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus-intermediary:");
 		database.feather = FEATHER_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:feather:");
 		database.nests = NESTS_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:nests:");
-		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "org.quiltmc:quilt-loader:", list -> {
+		database.loader.put(LoaderType.FABRIC, FABRIC_LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
 					version.setStable(true);
 					break;
 				}
 			}
-		});
+		}));
+		database.loader.put(LoaderType.QUILT, QUILT_LOADER_PARSER.getMeta(MavenBuildVersion::new, "org.quiltmc:quilt-loader:", list -> {
+			for (BaseVersion version : list) {
+				if (isPublicLoaderVersion(version)) {
+					version.setStable(true);
+					break;
+				}
+			}
+		}));
 		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer:");
 		database.loadMcData();
 		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
@@ -137,15 +152,15 @@ public class VersionDatabase {
 		game = minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList());
 	}
 
-	public List<MavenBuildVersion> getLoader() {
-		return loader.stream().filter(VersionDatabase::isPublicLoaderVersion).collect(Collectors.toList());
+	public List<MavenBuildVersion> getLoader(LoaderType type) {
+		return loader.get(type).stream().filter(VersionDatabase::isPublicLoaderVersion).collect(Collectors.toList());
 	}
 	
 	private static boolean isPublicLoaderVersion(BaseVersion version) {
 		return true;
 	}
 
-	public List<MavenBuildVersion> getAllLoader() {
-		return Collections.unmodifiableList(loader);
+	public List<MavenBuildVersion> getAllLoader(LoaderType type) {
+		return Collections.unmodifiableList(loader.get(type));
 	}
 }

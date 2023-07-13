@@ -18,10 +18,27 @@
 
 package net.ornithemc.meta.web.models;
 
-public interface LoaderInfoBase {
+import net.ornithemc.meta.data.VersionDatabase;
 
-	LoaderType getLoaderType();
+public enum LoaderType {
 
-	MavenBuildVersion getLoader();
+	FABRIC("fabric", VersionDatabase.FABRIC_MAVEN_URL),
+	QUILT("quilt", VersionDatabase.QUILT_MAVEN_URL),
+	ORNITHE("ornithe", VersionDatabase.ORNITHE_MAVEN_URL);
 
+	private final String name;
+	private final String maven;
+
+	private LoaderType(String name, String maven) {
+		this.name = name;
+		this.maven = maven;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getMavenUrl() {
+		return maven;
+	}
 }

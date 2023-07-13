@@ -36,10 +36,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import net.ornithemc.meta.data.VersionDatabase;
 import org.apache.commons.io.IOUtils;
 
+import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
+import net.ornithemc.meta.web.models.LoaderType;
 
 public class ProfileHandlerV3 {
 
@@ -47,10 +48,15 @@ public class ProfileHandlerV3 {
 	private static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	public static void setup() {
-		EndpointsV3.fileDownload("profile", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::profileJson);
-		EndpointsV3.fileDownload("profile", "zip", ProfileHandlerV3::getZipFileName, ProfileHandlerV3::profileZip);
+		setup(LoaderType.FABRIC);
+		setup(LoaderType.QUILT);
+	}
 
-		EndpointsV3.fileDownload("server", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::serverJson);
+	private static void setup(LoaderType type) {
+		EndpointsV3.fileDownload(type, "profile", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::profileJson);
+		EndpointsV3.fileDownload(type, "profile", "zip", ProfileHandlerV3::getZipFileName, ProfileHandlerV3::profileZip);
+
+		EndpointsV3.fileDownload(type, "server", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::serverJson);
 	}
 
 	private static String getJsonFileName(LoaderInfoV3 info) {
@@ -62,7 +68,11 @@ public class ProfileHandlerV3 {
 	}
 
 	private static String getJsonFileName(LoaderInfoV3 info, String ext) {
-		return String.format("quilt-loader-%s-%s.%s", info.getLoader().getVersion(), info.getIntermediary().getVersion(), ext);
+		return String.format("%s-loader-%s-%s.%s",
+				info.getLoaderType().getName(),
+				info.getLoader().getVersion(),
+				info.getIntermediary().getVersion(),
+				ext);
 	}
 
 	private static CompletableFuture<InputStream> profileJson(LoaderInfoV3 info) {
@@ -79,7 +89,10 @@ public class ProfileHandlerV3 {
 	}
 
 	private static InputStream packageZip(LoaderInfoV3 info, InputStream profileJson)  {
-		String profileName = String.format("quilt-loader-%s-%s", info.getLoader().getVersion(), info.getIntermediary().getVersion());
+		String profileName = String.format("%s-loader-%s-%s",
+				info.getLoaderType().getName(),
+				info.getLoader().getVersion(), 
+				info.getIntermediary().getVersion());
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -111,13 +124,16 @@ public class ProfileHandlerV3 {
 	private static JsonObject buildProfileJson(LoaderInfoV3 info, String side) {
 		JsonObject launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("quilt-loader-%s-%s", info.getLoader().getVersion(), info.getGame(side));
+		String profileName = String.format("%s-loader-%s-%s",
+				info.getLoaderType().getName(),
+				info.getLoader().getVersion(),
+				info.getGame(side));
 
 		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
 		// Build the libraries array with the existing libs + loader and intermediary
 		JsonArray libraries = (JsonArray) librariesObject.get("common");
 		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabase.QUILT_MAVEN_URL));
+		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
 
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());

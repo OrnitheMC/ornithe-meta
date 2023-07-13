@@ -41,6 +41,11 @@ public class LoaderInfoV2 implements LoaderInfoBase {
 	}
 
 	@Override
+	public LoaderType getLoaderType() {
+		return LoaderType.ORNITHE;
+	}
+
+	@Override
 	public MavenBuildVersion getLoader() {
 		return loader;
 	}

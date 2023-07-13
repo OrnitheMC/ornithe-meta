@@ -20,9 +20,11 @@ package net.ornithemc.meta.web;
 
 import io.javalin.core.util.Header;
 import io.javalin.http.Context;
+
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
+import net.ornithemc.meta.web.models.LoaderType;
 import net.ornithemc.meta.web.models.MavenBuildGameVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
@@ -57,9 +59,13 @@ public class EndpointsV3 {
 		WebServer.jsonGet("/v3/versions/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
 		WebServer.jsonGet("/v3/versions/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
 
-		WebServer.jsonGet("/v3/versions/loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader()));
-		WebServer.jsonGet("/v3/versions/loader/:game_version", context -> withLimitSkip(context, EndpointsV3.getLoaderInfoAll(context)));
-		WebServer.jsonGet("/v3/versions/loader/:game_version/:loader_version", EndpointsV3::getLoaderInfo);
+		WebServer.jsonGet("/v3/versions/fabric-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.FABRIC)));
+		WebServer.jsonGet("/v3/versions/fabric-loader/:game_version", context -> withLimitSkip(context, getLoaderInfoAll(context, LoaderType.FABRIC)));
+		WebServer.jsonGet("/v3/versions/fabric-loader/:game_version/:loader_version", context -> getLoaderInfo(context, LoaderType.FABRIC));
+
+		WebServer.jsonGet("/v3/versions/quilt-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.QUILT)));
+		WebServer.jsonGet("/v3/versions/quilt-loader/:game_version", context -> withLimitSkip(context, getLoaderInfoAll(context, LoaderType.QUILT)));
+		WebServer.jsonGet("/v3/versions/quilt-loader/:game_version/:loader_version", context -> getLoaderInfo(context, LoaderType.QUILT));
 
 		WebServer.jsonGet("/v3/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
@@ -90,7 +96,7 @@ public class EndpointsV3 {
 
 	}
 
-	private static Object getLoaderInfo(Context context) {
+	private static Object getLoaderInfo(Context context, LoaderType type) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
@@ -101,7 +107,7 @@ public class EndpointsV3 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader().stream()
+		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader(type).stream()
 			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
 			.findFirst().orElse(null);
 
@@ -117,10 +123,10 @@ public class EndpointsV3 {
 			context.status(400);
 			return "no mappings version found for " + gameVersion;
 		}
-		return new LoaderInfoV3(loader, mappings).populateMeta();
+		return new LoaderInfoV3(type, loader, mappings).populateMeta();
 	}
 
-	private static List<?> getLoaderInfoAll(Context context) {
+	private static List<?> getLoaderInfoAll(Context context, LoaderType type) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
@@ -136,8 +142,8 @@ public class EndpointsV3 {
 
 		List<LoaderInfoV3> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader()){
-			infoList.add(new LoaderInfoV3(loader, mappings).populateMeta());
+		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader(type)){
+			infoList.add(new LoaderInfoV3(type, loader, mappings).populateMeta());
 		}
 		return infoList;
 	}
@@ -155,9 +161,9 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	public static void fileDownload(String path, String ext, Function<LoaderInfoV3, String> fileNameFunction, Function<LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
-		WebServer.javalin.get("/v3/versions/loader/:game_version/:loader_version/" + path + "/" + ext, ctx -> {
-			Object obj = getLoaderInfo(ctx);
+	public static void fileDownload(LoaderType type, String path, String ext, Function<LoaderInfoV3, String> fileNameFunction, Function<LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
+		WebServer.javalin.get("/v3/versions/" + type.getName() + "-loader/:game_version/:loader_version/" + path + "/" + ext, ctx -> {
+			Object obj = getLoaderInfo(ctx, type);
 
 			if (obj instanceof String) {
 				ctx.result((String) obj);

@@ -28,7 +28,6 @@ import org.apache.commons.io.FileUtils;
 
 import com.google.gson.JsonObject;
 
-import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.WebServer;
 import net.ornithemc.meta.web.models.LoaderInfoBase;
 
@@ -37,6 +36,7 @@ public class LoaderMetaV3 {
 	public static final File BASE_DIR = new File("metadata");
 
 	public static JsonObject getMeta(LoaderInfoBase loaderInfo){
+		String loaderMavenUrl = loaderInfo.getLoaderType().getMavenUrl();
 		String loaderMaven = loaderInfo.getLoader().getMaven();
 		String[] split = loaderMaven.split(":");
 		String path = String.format("%s/%s/%s", split[0].replaceAll("\\.","/"), split[1], split[2]);
@@ -45,7 +45,7 @@ public class LoaderMetaV3 {
 		File launcherMetaFile = new File(BASE_DIR, path + "/" + filename);
 		if(!launcherMetaFile.exists()){
 			try {
-				String url = String.format("%s%s/%s", VersionDatabase.QUILT_MAVEN_URL, path, filename);
+				String url = String.format("%s%s/%s", loaderMavenUrl, path, filename);
 				System.out.println("Downloading " + url);
 				FileUtils.copyURLToFile(new URL(url), launcherMetaFile);
 			} catch (IOException e) {
