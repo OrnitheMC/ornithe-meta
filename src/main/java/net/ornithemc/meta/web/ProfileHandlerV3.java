@@ -68,7 +68,7 @@ public class ProfileHandlerV3 {
 	}
 
 	private static String getJsonFileName(LoaderInfoV3 info, String ext) {
-		return String.format("%s-loader-%s-%s.%s",
+		return String.format("%s-loader-%s-%s-ornithe.%s",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(),
 				info.getIntermediary().getVersion(),
@@ -89,7 +89,7 @@ public class ProfileHandlerV3 {
 	}
 
 	private static InputStream packageZip(LoaderInfoV3 info, InputStream profileJson)  {
-		String profileName = String.format("%s-loader-%s-%s",
+		String profileName = String.format("%s-loader-%s-%s-ornithe",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(), 
 				info.getIntermediary().getVersion());
@@ -124,7 +124,7 @@ public class ProfileHandlerV3 {
 	private static JsonObject buildProfileJson(LoaderInfoV3 info, String side) {
 		JsonObject launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("%s-loader-%s-%s",
+		String profileName = String.format("%s-loader-%s-%s-ornithe",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(),
 				info.getGame(side));
