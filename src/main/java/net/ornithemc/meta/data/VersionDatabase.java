@@ -61,42 +61,44 @@ public class VersionDatabase {
 	public static final PomParser FABRIC_LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser QUILT_LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
-	public static final Map<String, PomParser> OSL_PARSERS = new HashMap<String, PomParser>() {
 
-		{
-			try {
-				URL url = new URL(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl");
+	public static final Map<String, PomParser> getOslPomParsers() {
+		Map<String, PomParser> parsers = new HashMap<>();
 
-				try (InputStreamReader input = new InputStreamReader(url.openStream())) {
-					JsonElement json = JsonParser.parseReader(input);
+		try {
+			URL url = new URL(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl");
 
-					if (json.isJsonObject()) {
-						JsonObject obj = json.getAsJsonObject();
-						JsonElement files = obj.get("files");
+			try (InputStreamReader input = new InputStreamReader(url.openStream())) {
+				JsonElement json = JsonParser.parseReader(input);
 
-						if (files != null && files.isJsonArray()) {
-							JsonArray arr = files.getAsJsonArray();
+				if (json.isJsonObject()) {
+					JsonObject obj = json.getAsJsonObject();
+					JsonElement files = obj.get("files");
 
-							for (JsonElement file : arr) {
-								if (file.isJsonObject()) {
-									JsonObject f = file.getAsJsonObject();
-									JsonElement name = f.get("name");
-									JsonElement type = f.get("type");
+					if (files != null && files.isJsonArray()) {
+						JsonArray arr = files.getAsJsonArray();
 
-									if (name != null && name.isJsonPrimitive() && type != null && type.isJsonPrimitive()) {
-										if ("DIRECTORY".equals(type.getAsString())) {
-											put(name.getAsString(), new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/" + name.getAsString() + "/maven-metadata.xml"));
-										}
+						for (JsonElement file : arr) {
+							if (file.isJsonObject()) {
+								JsonObject f = file.getAsJsonObject();
+								JsonElement name = f.get("name");
+								JsonElement type = f.get("type");
+
+								if (name != null && name.isJsonPrimitive() && type != null && type.isJsonPrimitive()) {
+									if ("DIRECTORY".equals(type.getAsString())) {
+										parsers.put(name.getAsString(), new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/" + name.getAsString() + "/maven-metadata.xml"));
 									}
 								}
 							}
 						}
 					}
 				}
-			} catch (IOException e) {
 			}
+		} catch (IOException e) {
 		}
-	};
+
+		return parsers;
+	}
 
 	private final Map<LoaderType, List<MavenBuildVersion>> loader;
 	private final Map<String, List<MavenVersion>> osl;
@@ -137,11 +139,15 @@ public class VersionDatabase {
 			}
 		}));
 		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer:");
-		for (Map.Entry<String, PomParser> e : OSL_PARSERS.entrySet()) {
+		for (Map.Entry<String, PomParser> e : getOslPomParsers().entrySet()) {
 			String module = e.getKey();
 			PomParser parser = e.getValue();
 
-			database.osl.put(module, parser.getMeta(MavenVersion::new, "net.ornithemc.osl:" + module + ":"));
+			database.osl.put(module, parser.getMeta(MavenVersion::new, "net.ornithemc.osl:" + module + ":", list -> {
+				for (BaseVersion version : list) {
+					version.setStable(true);
+				}
+			}));
 		};
 		database.loadMcData();
 		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
