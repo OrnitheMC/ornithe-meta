@@ -33,11 +33,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.vdurmont.semver4j.Semver;
 
 public class EndpointsV3 {
 
@@ -68,6 +71,9 @@ public class EndpointsV3 {
 		WebServer.jsonGet("/v3/versions/quilt-loader/:game_version/:loader_version", context -> getLoaderInfo(context, LoaderType.QUILT));
 
 		WebServer.jsonGet("/v3/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
+
+		WebServer.jsonGet("/v3/versions/osl/:module/:game_version", context -> withLimitSkip(context, getOslInfo(context)));
+		WebServer.jsonGet("/v3/versions/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslInfo(context)));
 
 		ProfileHandlerV3.setup();
 	}
@@ -157,6 +163,54 @@ public class EndpointsV3 {
 				versions.add(baseVersionSupplier.apply(entry));
 			}
 		}
+
+		return versions;
+	}
+
+	private static List<?> getOslInfo(Context context) {
+		if (!context.pathParamMap().containsKey("module")) {
+			return null;
+		}
+		if (!context.pathParamMap().containsKey("game_version")) {
+			return null;
+		}
+
+		String module = context.pathParam("module");
+		String gameVersion = context.pathParam("game_version");
+		List<MavenVersion> versions = OrnitheMeta.database.getOsl(module);
+
+		if (context.pathParamMap().containsKey("base_version")) {
+			String baseVersion = context.pathParam("base_version");
+
+			versions = versions.stream()
+					.filter(v -> v.getVersion().startsWith(baseVersion))
+					.collect(Collectors.toList());
+		}
+
+		versions = versions.stream()
+				.filter(version -> {
+					String buildVersion = version.getVersion();
+					String[] parts = buildVersion.split("\\+mc");
+
+					if (parts.length == 2) {
+						parts = parts[1].split("[#]");
+
+						if (parts.length == 2) {
+							try {
+								Semver v = OrnitheMeta.database.manifest.get(gameVersion);
+								Semver vmin = OrnitheMeta.database.manifest.get(parts[0]);
+								Semver vmax = OrnitheMeta.database.manifest.get(parts[1]);
+
+								return v.compareTo(vmin) >= 0 && v.compareTo(vmax) <= 0;
+							} catch (NoSuchElementException e) {
+								return false;
+							}
+						}
+					}
+
+					return true;
+				})
+				.collect(Collectors.toList());
 
 		return versions;
 	}

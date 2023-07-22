@@ -20,6 +20,7 @@ package net.ornithemc.meta.data;
 
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.PomParser;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.LoaderType;
 import net.ornithemc.meta.web.models.MavenBuildGameVersion;
@@ -28,11 +29,20 @@ import net.ornithemc.meta.web.models.MavenUrlVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
 import javax.xml.stream.XMLStreamException;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -43,6 +53,7 @@ public class VersionDatabase {
 	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
 	public static final String QUILT_MAVEN_URL = "https://maven.quiltmc.org/repository/release/";
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
+	public static final String ORNITHE_MAVEN_DETAILS_URL = "https://maven.ornithemc.net/api/maven/details/releases/";
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
 	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");
@@ -50,8 +61,47 @@ public class VersionDatabase {
 	public static final PomParser FABRIC_LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser QUILT_LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
+	public static final Map<String, PomParser> OSL_PARSERS = new HashMap<String, PomParser>() {
+
+		{
+			try {
+				URL url = new URL(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl");
+
+				try (InputStreamReader input = new InputStreamReader(url.openStream())) {
+					JsonElement json = JsonParser.parseReader(input);
+
+					if (json.isJsonObject()) {
+						JsonObject obj = json.getAsJsonObject();
+						JsonElement files = obj.get("files");
+
+						if (files != null && files.isJsonArray()) {
+							JsonArray arr = files.getAsJsonArray();
+
+							for (JsonElement file : arr) {
+								if (file.isJsonObject()) {
+									JsonObject f = file.getAsJsonObject();
+									JsonElement name = f.get("name");
+									JsonElement type = f.get("type");
+
+									if (name != null && name.isJsonPrimitive() && type != null && type.isJsonPrimitive()) {
+										if ("DIRECTORY".equals(type.getAsString())) {
+											put(name.getAsString(), new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/" + name.getAsString() + "/maven-metadata.xml"));
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			} catch (IOException e) {
+			}
+		}
+	};
 
 	private final Map<LoaderType, List<MavenBuildVersion>> loader;
+	private final Map<String, List<MavenVersion>> osl;
+
+	public final VersionManifest manifest = new VersionManifest();
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> intermediary;
@@ -61,6 +111,7 @@ public class VersionDatabase {
 
 	private VersionDatabase() {
 		this.loader = new EnumMap<>(LoaderType.class);
+		this.osl = new HashMap<>();
 	}
 
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
@@ -86,6 +137,12 @@ public class VersionDatabase {
 			}
 		}));
 		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer:");
+		for (Map.Entry<String, PomParser> e : OSL_PARSERS.entrySet()) {
+			String module = e.getKey();
+			PomParser parser = e.getValue();
+
+			database.osl.put(module, parser.getMeta(MavenVersion::new, "net.ornithemc.osl:" + module + ":"));
+		};
 		database.loadMcData();
 		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
 		return database;
@@ -154,6 +211,10 @@ public class VersionDatabase {
 
 	public List<MavenBuildVersion> getLoader(LoaderType type) {
 		return loader.get(type).stream().filter(VersionDatabase::isPublicLoaderVersion).collect(Collectors.toList());
+	}
+
+	public List<MavenVersion> getOsl(String module) {
+		return osl.get(module);
 	}
 	
 	private static boolean isPublicLoaderVersion(BaseVersion version) {
