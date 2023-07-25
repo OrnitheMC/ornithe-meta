@@ -215,10 +215,11 @@ public class EndpointsV3 {
 							minGameVersion = parts[0];
 							maxGameVersion = parts[1];
 						}
-					}
-					if (parts.length == 3) { // new format: <base version>+mc<min mc version>-mc<max mc version>
+					} else if (parts.length == 3) { // new format: <base version>+mc<min mc version>-mc<max mc version>
 						minGameVersion = parts[1].substring(0, parts[1].length() - 1);
 						maxGameVersion = parts[2];
+					} else { // module without mc dependency
+						return true;
 					}
 
 					try {
