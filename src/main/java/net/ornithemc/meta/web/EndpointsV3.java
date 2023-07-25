@@ -72,8 +72,10 @@ public class EndpointsV3 {
 
 		WebServer.jsonGet("/v3/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
-		WebServer.jsonGet("/v3/versions/osl/:module/:game_version", context -> withLimitSkip(context, getOslInfo(context)));
-		WebServer.jsonGet("/v3/versions/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslInfo(context)));
+		WebServer.jsonGet("/v3/versions/osl", context -> withLimitSkip(context, OrnitheMeta.database.osl));
+		WebServer.jsonGet("/v3/versions/osl/:version", context -> withLimitSkip(context, getOslDependencyInfo(context)));
+		WebServer.jsonGet("/v3/versions/osl/:module/:game_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
+		WebServer.jsonGet("/v3/versions/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
 
 		ProfileHandlerV3.setup();
 	}
@@ -167,7 +169,18 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	private static List<?> getOslInfo(Context context) {
+	private static List<?> getOslDependencyInfo(Context context) {
+		if (!context.pathParamMap().containsKey("version")) {
+			return null;
+		}
+
+		String version = context.pathParam("version");
+		List<MavenVersion> versions = OrnitheMeta.database.getOslDependencies(version);
+
+		return versions;
+	}
+
+	private static List<?> getOslModuleInfo(Context context) {
 		if (!context.pathParamMap().containsKey("module")) {
 			return null;
 		}
@@ -177,7 +190,7 @@ public class EndpointsV3 {
 
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
-		List<MavenVersion> versions = OrnitheMeta.database.getOsl(module);
+		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(module);
 
 		if (context.pathParamMap().containsKey("base_version")) {
 			String baseVersion = context.pathParam("base_version");
@@ -189,26 +202,34 @@ public class EndpointsV3 {
 
 		versions = versions.stream()
 				.filter(version -> {
-					String buildVersion = version.getVersion();
-					String[] parts = buildVersion.split("\\+mc");
+					String minGameVersion = null;
+					String maxGameVersion = null;
 
-					if (parts.length == 2) {
+					String buildVersion = version.getVersion();
+					String[] parts = buildVersion.split("mc");
+
+					if (parts.length == 2) { // old format: <base version>+mc<min mc version>#<max mc version>
 						parts = parts[1].split("[#]");
 
 						if (parts.length == 2) {
-							try {
-								Semver v = OrnitheMeta.database.manifest.get(gameVersion);
-								Semver vmin = OrnitheMeta.database.manifest.get(parts[0]);
-								Semver vmax = OrnitheMeta.database.manifest.get(parts[1]);
-
-								return v.compareTo(vmin) >= 0 && v.compareTo(vmax) <= 0;
-							} catch (NoSuchElementException e) {
-								return false;
-							}
+							minGameVersion = parts[0];
+							maxGameVersion = parts[1];
 						}
 					}
+					if (parts.length == 3) { // new format: <base version>+mc<min mc version>-mc<max mc version>
+						minGameVersion = parts[1].substring(0, parts[1].length() - 1);
+						maxGameVersion = parts[2];
+					}
 
-					return true;
+					try {
+						Semver v = OrnitheMeta.database.manifest.get(gameVersion);
+						Semver vmin = OrnitheMeta.database.manifest.get(minGameVersion);
+						Semver vmax = OrnitheMeta.database.manifest.get(maxGameVersion);
+
+						return v.compareTo(vmin) >= 0 && v.compareTo(vmax) <= 0;
+					} catch (NoSuchElementException e) {
+						return false;
+					}
 				})
 				.collect(Collectors.toList());
 
