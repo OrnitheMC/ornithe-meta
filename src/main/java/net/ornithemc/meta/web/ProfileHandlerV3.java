@@ -36,8 +36,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import com.vdurmont.semver4j.Semver;
+
 import org.apache.commons.io.IOUtils;
 
+import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
@@ -46,6 +49,7 @@ public class ProfileHandlerV3 {
 
 	private static final Executor EXECUTOR = Executors.newFixedThreadPool(2);
 	private static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+	private static final Semver MAX_LOG4J_VERSION = new Semver("1.6.4");
 
 	public static void setup() {
 		setup(LoaderType.FABRIC);
@@ -135,6 +139,10 @@ public class ProfileHandlerV3 {
 		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
 
+		if (OrnitheMeta.database.manifest.get(info.getIntermediary().getVersion()).compareTo(MAX_LOG4J_VERSION) <= 0) {
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.0-beta9", "https://libraries.minecraft.net/"));
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.0-beta9", "https://libraries.minecraft.net/"));
+		}
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
 		}
