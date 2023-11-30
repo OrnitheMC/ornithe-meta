@@ -140,8 +140,8 @@ public class ProfileHandlerV3 {
 		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
 
 		if (OrnitheMeta.database.manifest.get(info.getIntermediary().getVersion()).compareTo(MAX_LOG4J_VERSION) <= 0) {
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.0-beta9", "https://libraries.minecraft.net/"));
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.0-beta9", "https://libraries.minecraft.net/"));
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.19.0", "https://libraries.minecraft.net/"));
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.19.0", "https://libraries.minecraft.net/"));
 		}
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
