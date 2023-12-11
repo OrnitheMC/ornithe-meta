@@ -58,6 +58,7 @@ public class VersionDatabase {
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 	public static final String ORNITHE_MAVEN_DETAILS_URL = "https://maven.ornithemc.net/api/maven/details/releases/";
 	public static final String ORNITHE_MAVEN_VERSIONS_URL = "https://maven.ornithemc.net/api/maven/versions/releases/";
+	public static final String MINECRAFT_LIBRARIES_URL = "https://libraries.minecraft.net/";
 
 	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
 	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");

@@ -50,6 +50,8 @@ public class ProfileHandlerV3 {
 	private static final Executor EXECUTOR = Executors.newFixedThreadPool(2);
 	private static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 	private static final Semver MAX_LOG4J_VERSION = new Semver("1.6.4");
+	private static final Semver MAX_GSON_VERSION = new Semver("1.5.2");
+	private static final Semver MAX_GUAVA_VERSION = new Semver("1.5.2");
 
 	public static void setup() {
 		setup(LoaderType.FABRIC);
@@ -139,9 +141,17 @@ public class ProfileHandlerV3 {
 		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
 
-		if (OrnitheMeta.database.manifest.get(info.getGame(side)).compareTo(MAX_LOG4J_VERSION) <= 0) {
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.19.0", "https://libraries.minecraft.net/"));
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.19.0", "https://libraries.minecraft.net/"));
+		Semver normalizedMcVersion = OrnitheMeta.database.manifest.get(info.getGame(side));
+
+		if (normalizedMcVersion.compareTo(MAX_LOG4J_VERSION) <= 0) {
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.19.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.19.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_GSON_VERSION) <= 0) {
+			libraries.add(getLibrary("com.google.code.gson:gson:2.2.2", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_GUAVA_VERSION) <= 0) {
+			libraries.add(getLibrary("com.google.guava:guava:14.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
 		}
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
