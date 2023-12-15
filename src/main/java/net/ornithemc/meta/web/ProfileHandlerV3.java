@@ -52,6 +52,7 @@ public class ProfileHandlerV3 {
 	private static final Semver MAX_LOG4J_VERSION = new Semver("1.6.4");
 	private static final Semver MAX_GSON_VERSION = new Semver("1.5.2");
 	private static final Semver MAX_GUAVA_VERSION = new Semver("1.5.2");
+	private static final Semver MAX_FASTUTIL_VERSION = new Semver("1.11.2");
 
 	public static void setup() {
 		setup(LoaderType.FABRIC);
@@ -152,6 +153,9 @@ public class ProfileHandlerV3 {
 		}
 		if (normalizedMcVersion.compareTo(MAX_GUAVA_VERSION) <= 0) {
 			libraries.add(getLibrary("com.google.guava:guava:14.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_FASTUTIL_VERSION) <= 0) {
+			libraries.add(getLibrary("it.unimi.dsi:fastutil:7.0.12_mojang", VersionDatabase.MINECRAFT_LIBRARIES_URL));
 		}
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
