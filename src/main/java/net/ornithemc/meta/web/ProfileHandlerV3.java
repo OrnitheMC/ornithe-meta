@@ -36,12 +36,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import com.vdurmont.semver4j.Semver;
-
 import org.apache.commons.io.IOUtils;
 
-import net.ornithemc.meta.OrnitheMeta;
-import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
 
@@ -49,15 +45,6 @@ public class ProfileHandlerV3 {
 
 	private static final Executor EXECUTOR = Executors.newFixedThreadPool(2);
 	private static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-	private static final Semver MAX_LOG4J_VERSION = new Semver("1.6.4");
-	private static final Semver MAX_GSON_VERSION = new Semver("1.5.2");
-	private static final Semver MAX_GUAVA_VERSION = new Semver("1.5.2");
-	private static final Semver MAX_FASTUTIL_VERSION = new Semver("1.11.2");
-	private static final Semver MAX_COMMONS_CODEC_VERSION = new Semver("1.7.5");
-	private static final Semver MAX_COMMONS_COMPRESS_VERSION = new Semver("1.7.10");
-	private static final Semver MAX_COMMONS_IO_VERSION = new Semver("1.5.2");
-	private static final Semver MAX_COMMONS_LANG3_VERSION = new Semver("1.5.2");
-	private static final Semver MAX_COMMONS_LOGGING_VERSION = new Semver("1.7.10");
 
 	public static void setup() {
 		setup(LoaderType.FABRIC);
@@ -141,45 +128,7 @@ public class ProfileHandlerV3 {
 				info.getLoader().getVersion(),
 				info.getGame(side));
 
-		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
-		// Build the libraries array with the existing libs + loader and intermediary
-		JsonArray libraries = (JsonArray) librariesObject.get("common");
-		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
-
-		Semver normalizedMcVersion = OrnitheMeta.database.manifest.get(info.getGame(side));
-
-		if (normalizedMcVersion.compareTo(MAX_LOG4J_VERSION) <= 0) {
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-api:2.19.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-			libraries.add(getLibrary("org.apache.logging.log4j:log4j-core:2.19.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_GSON_VERSION) <= 0) {
-			libraries.add(getLibrary("com.google.code.gson:gson:2.2.2", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_GUAVA_VERSION) <= 0) {
-			libraries.add(getLibrary("com.google.guava:guava:14.0", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_FASTUTIL_VERSION) <= 0) {
-			libraries.add(getLibrary("it.unimi.dsi:fastutil:7.0.12_mojang", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_COMMONS_CODEC_VERSION) <= 0) {
-			libraries.add(getLibrary("commons-codec:commons-codec:1.9", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_COMMONS_COMPRESS_VERSION) <= 0) {
-			libraries.add(getLibrary("org.apache.commons:commons-compress:1.8.1", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_COMMONS_IO_VERSION) <= 0) {
-			libraries.add(getLibrary("commons-io:commons-io:2.4", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_COMMONS_LANG3_VERSION) <= 0) {
-			libraries.add(getLibrary("org.apache.commons:commons-lang3:3.1", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (normalizedMcVersion.compareTo(MAX_COMMONS_LOGGING_VERSION) <= 0) {
-			libraries.add(getLibrary("commons-logging:commons-logging:1.1.3", VersionDatabase.MINECRAFT_LIBRARIES_URL));
-		}
-		if (librariesObject.has(side)) {
-			libraries.addAll(librariesObject.get(side).getAsJsonArray());
-		}
+		JsonArray libraries = ProfileLibraryManager.getLibraries(info, side);
 
 		String currentTime = ISO_8601.format(new Date());
 
@@ -216,12 +165,5 @@ public class ProfileHandlerV3 {
 		profile.add("libraries", libraries);
 
 		return profile;
-	}
-
-	private static JsonObject getLibrary(String mavenPath, String url) {
-		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("name", mavenPath);
-		jsonObject.addProperty("url", url);
-		return jsonObject;
 	}
 }
