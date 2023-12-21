@@ -53,6 +53,11 @@ public class ProfileHandlerV3 {
 	private static final Semver MAX_GSON_VERSION = new Semver("1.5.2");
 	private static final Semver MAX_GUAVA_VERSION = new Semver("1.5.2");
 	private static final Semver MAX_FASTUTIL_VERSION = new Semver("1.11.2");
+	private static final Semver MAX_COMMONS_CODEC_VERSION = new Semver("1.7.5");
+	private static final Semver MAX_COMMONS_COMPRESS_VERSION = new Semver("1.7.10");
+	private static final Semver MAX_COMMONS_IO_VERSION = new Semver("1.5.2");
+	private static final Semver MAX_COMMONS_LANG3_VERSION = new Semver("1.5.2");
+	private static final Semver MAX_COMMONS_LOGGING_VERSION = new Semver("1.7.10");
 
 	public static void setup() {
 		setup(LoaderType.FABRIC);
@@ -156,6 +161,21 @@ public class ProfileHandlerV3 {
 		}
 		if (normalizedMcVersion.compareTo(MAX_FASTUTIL_VERSION) <= 0) {
 			libraries.add(getLibrary("it.unimi.dsi:fastutil:7.0.12_mojang", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_COMMONS_CODEC_VERSION) <= 0) {
+			libraries.add(getLibrary("commons-codec:commons-codec:1.9", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_COMMONS_COMPRESS_VERSION) <= 0) {
+			libraries.add(getLibrary("org.apache.commons:commons-compress:1.8.1", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_COMMONS_IO_VERSION) <= 0) {
+			libraries.add(getLibrary("commons-io:commons-io:2.4", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_COMMONS_LANG3_VERSION) <= 0) {
+			libraries.add(getLibrary("org.apache.commons:commons-lang3:3.1", VersionDatabase.MINECRAFT_LIBRARIES_URL));
+		}
+		if (normalizedMcVersion.compareTo(MAX_COMMONS_LOGGING_VERSION) <= 0) {
+			libraries.add(getLibrary("commons-logging:commons-logging:1.1.3", VersionDatabase.MINECRAFT_LIBRARIES_URL));
 		}
 		if (librariesObject.has(side)) {
 			libraries.addAll(librariesObject.get(side).getAsJsonArray());
