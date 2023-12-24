@@ -45,6 +45,7 @@ public class ProfileLibraryManager {
 		LIBRARIES.add(new Library("1.5.2", "commons-io:commons-io:2.4"));
 		LIBRARIES.add(new Library("1.5.2", "org.apache.commons:commons-lang3:3.1"));
 		LIBRARIES.add(new Library("1.7.10", "commons-logging:commons-logging:1.1.3"));
+		LIBRARIES.add(new Library("1.7.9", "org.apache.httpcomponents:httpclient:4.3.3"));
 	}
 
 	public static JsonArray getLibraries(LoaderInfoV3 info, String side) {
