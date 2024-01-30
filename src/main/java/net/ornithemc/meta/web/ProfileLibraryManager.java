@@ -41,7 +41,7 @@ public class ProfileLibraryManager {
 		// this library will ship slf4j api, log4j api and log4j core so we do not need to specify those separately
 		LIBRARIES.add(Library.all("org.apache.logging.log4j:log4j-slf4j-impl:2.8.1"));
 		LIBRARIES.add(Library.all("it.unimi.dsi:fastutil:8.5.9"));
-		LIBRARIES.add(Library.upTo("com.google.code.gson:gson:2.10"));
+		LIBRARIES.add(Library.all("com.google.code.gson:gson:2.10"));
 
 		LIBRARIES.add(Library.upTo("1.5.2", "com.google.guava:guava:14.0"));
 		LIBRARIES.add(Library.upTo("1.7.5", "commons-codec:commons-codec:1.9"));
