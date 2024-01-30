@@ -23,7 +23,7 @@ import java.util.function.Predicate;
 public class BaseVersion implements Predicate<String> {
 
 	String version;
-	String versionNoSide;
+	transient String versionNoSide;
 	boolean stable = false;
 
 	public BaseVersion(String version, boolean stable) {
