@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 public class BaseVersion implements Predicate<String> {
 
 	String version;
+	String versionNoSide;
 	boolean stable = false;
 
 	public BaseVersion(String version, boolean stable) {
@@ -32,6 +33,18 @@ public class BaseVersion implements Predicate<String> {
 
 	public String getVersion() {
 		return version;
+	}
+
+	public String getVersionNoSide() {
+		if (versionNoSide == null) {
+			versionNoSide = version;
+
+			if (versionNoSide.endsWith("-client") || versionNoSide.endsWith("-server")) {
+				versionNoSide = versionNoSide.substring(0, versionNoSide.length() - 7);
+			}
+		}
+
+		return versionNoSide;
 	}
 
 	public boolean isStable() {

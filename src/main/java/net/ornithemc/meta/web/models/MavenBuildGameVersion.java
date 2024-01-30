@@ -35,6 +35,19 @@ public class MavenBuildGameVersion extends MavenBuildVersion {
 	}
 
 	@Override
+	public String getVersionNoSide() {
+		if (versionNoSide == null) {
+			versionNoSide = gameVersion;
+
+			if (versionNoSide.endsWith("-client") || versionNoSide.endsWith("-server")) {
+				versionNoSide = versionNoSide.substring(0, versionNoSide.length() - 7);
+			}
+		}
+
+		return versionNoSide;
+	}
+
+	@Override
 	public boolean test(String s) {
 		return getGameVersion().equals(s);
 	}

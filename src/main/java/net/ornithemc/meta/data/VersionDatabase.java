@@ -180,25 +180,18 @@ public class VersionDatabase {
 
 		// Sorts in the order of minecraft release dates
 		intermediary = new ArrayList<>(intermediary);
-		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
 		intermediary.forEach(version -> version.setStable(true));
 		feather = new ArrayList<>(feather);
-		feather.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		feather.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
 		feather.forEach(version -> version.setStable(true));
 		nests = new ArrayList<>(nests);
-		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
 		nests.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
 		intermediary.removeIf(o -> {
-			String iVersion;
-			if (o.getVersion().endsWith("-client") || o.getVersion().endsWith("-server")) {
-				iVersion = o.getVersion().substring(0, o.getVersion().length() - 7);
-			} else {
-				iVersion = o.getVersion();
-			}
-
-			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
+			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
 				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v3 intermediary)");
 				return true;
 			}
@@ -206,14 +199,7 @@ public class VersionDatabase {
 		});
 
 		Predicate<MavenBuildGameVersion> p = o -> {
-			String iVersion;
-			if (o.getGameVersion().endsWith("-client") || o.getGameVersion().endsWith("-server")) {
-				iVersion = o.getGameVersion().substring(0, o.getGameVersion().length() - 7);
-			} else {
-				iVersion = o.getGameVersion();
-			}
-
-			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
+			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
 				System.out.println("Removing " + o.getGameVersion() + " as it is not match an mc version (v3 Feather/nests)");
 				return true;
 			}
@@ -224,8 +210,8 @@ public class VersionDatabase {
 
 		List<String> minecraftVersions = new ArrayList<>();
 		for (MavenVersion gameVersion : intermediary) {
-			if (!minecraftVersions.contains(gameVersion.getVersion())) {
-				minecraftVersions.add(gameVersion.getVersion());
+			if (!minecraftVersions.contains(gameVersion.getVersionNoSide())) {
+				minecraftVersions.add(gameVersion.getVersionNoSide());
 			}
 		}
 
