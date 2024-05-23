@@ -13,7 +13,9 @@ version = version + (ENV.GITHUB_ACTIONS ? "" : "+local")
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-archivesBaseName = "ornithe-meta"
+base {
+	archivesName = "ornithe-meta"
+}
 
 repositories {
     mavenCentral()
