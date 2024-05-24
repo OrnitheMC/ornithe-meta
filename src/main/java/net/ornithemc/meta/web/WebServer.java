@@ -24,6 +24,7 @@ import io.javalin.Javalin;
 import io.javalin.core.util.Header;
 import io.javalin.core.util.RouteOverviewPlugin;
 import io.javalin.http.Context;
+import io.javalin.http.Handler;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -44,18 +45,22 @@ public class WebServer {
 		EndpointsV3.setup();
 	}
 
-	public static <T> void jsonGet(String route, Supplier<T> supplier) {
-		javalin.get(route, ctx -> {
+	public static <T> Handler jsonGet(String route, Supplier<T> supplier) {
+		Handler handler = ctx -> {
 			T object = supplier.get();
 			handleJson(ctx, object);
-		});
+		};
+		javalin.get(route, handler);
+		return handler;
 	}
 
-	public static <T> void jsonGet(String route, Function<Context, T> supplier) {
-		javalin.get(route, ctx -> {
+	public static <T> Handler jsonGet(String route, Function<Context, T> supplier) {
+		Handler handler = ctx -> {
 			T object = supplier.apply(ctx);
 			handleJson(ctx, object);
-		});
+		};
+		javalin.get(route, handler);
+		return handler;
 	}
 
 	private static void handleJson(Context ctx, Object object) {

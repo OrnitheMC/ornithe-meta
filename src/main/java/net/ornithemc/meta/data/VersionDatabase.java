@@ -36,6 +36,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -48,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -60,8 +64,9 @@ public class VersionDatabase {
 	public static final String ORNITHE_MAVEN_VERSIONS_URL = "https://maven.ornithemc.net/api/maven/versions/releases/";
 	public static final String MINECRAFT_LIBRARIES_URL = "https://libraries.minecraft.net/";
 
-	public static final PomParser INTERMEDIARY_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml");
-	public static final PomParser FEATHER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml");
+	public static final int LATEST_GENERATION = 2;
+	public static final int LATEST_STABLE_GENERATION = 1;
+
 	public static final PomParser NESTS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/nests/maven-metadata.xml");
 	public static final PomParser FABRIC_LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser QUILT_LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
@@ -69,7 +74,19 @@ public class VersionDatabase {
 	public static final PomParser OSL_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/maven-metadata.xml");
 	public static final PomDependencyParser OSL_DEPENDENCY_PARSER = new PomDependencyParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl");
 
-	public final Map<String, PomParser> getOslModulePomParsers() {
+	public static final PomParser intermediaryParser(int generation) {
+		return generation == 1
+			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml")
+			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml");
+	}
+
+	public static final PomParser featherParser(int generation) {
+		return generation == 1
+			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml")
+			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml");
+	}
+
+	public static final Map<String, PomParser> getOslModulePomParsers(List<MavenVersion> osl) {
 		Set<String> versions = new HashSet<>();
 		Map<String, PomParser> parsers = new HashMap<>();
 
@@ -112,20 +129,23 @@ public class VersionDatabase {
 		return parsers;
 	}
 
+	private final Int2ObjectMap<List<BaseVersion>> game;
+	private final Int2ObjectMap<List<MavenVersion>> intermediary;
+	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
 	private final Map<LoaderType, List<MavenBuildVersion>> loader;
 	private final Map<String, List<MavenVersion>> oslDependencies;
 	private final Map<String, List<MavenVersion>> oslModules;
 
 	public final VersionManifest manifest = new VersionManifest();
 
-	public List<BaseVersion> game;
-	public List<MavenVersion> intermediary;
-	public List<MavenBuildGameVersion> feather;
 	public List<MavenBuildGameVersion> nests;
 	public List<MavenUrlVersion> installer;
 	public List<MavenVersion> osl;
 
 	private VersionDatabase() {
+		this.game = new Int2ObjectOpenHashMap<>();
+		this.intermediary = new Int2ObjectOpenHashMap<>();
+		this.feather = new Int2ObjectOpenHashMap<>();
 		this.loader = new EnumMap<>(LoaderType.class);
 		this.oslDependencies = new HashMap<>();
 		this.oslModules = new HashMap<>();
@@ -134,8 +154,10 @@ public class VersionDatabase {
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
-		database.intermediary = INTERMEDIARY_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus-intermediary:");
-		database.feather = FEATHER_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:feather:");
+		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+			database.intermediary.put(generation, intermediaryParser(generation).getMeta(MavenVersion::new, generation == 1 ? "net.ornithemc:calamus-intermediary:" : String.format("net.ornithemc:calamus-intermediary-gen%d:", generation)));
+			database.feather.put(generation, featherParser(generation).getMeta(MavenBuildGameVersion::new, generation == 1 ? "net.ornithemc:feather:" : String.format("net.ornithemc:feather-gen%d:", generation)));
+		}
 		database.nests = NESTS_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:nests:");
 		database.loader.put(LoaderType.FABRIC, FABRIC_LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
 			for (BaseVersion version : list) {
@@ -160,7 +182,7 @@ public class VersionDatabase {
 				return v.getMaven().startsWith("net.ornithemc.osl");
 			}));
 		}
-		for (Map.Entry<String, PomParser> e : database.getOslModulePomParsers().entrySet()) {
+		for (Map.Entry<String, PomParser> e : getOslModulePomParsers(database.osl).entrySet()) {
 			String module = e.getKey();
 			PomParser parser = e.getValue();
 
@@ -172,50 +194,80 @@ public class VersionDatabase {
 	}
 
 	private void loadMcData() throws IOException {
-		if (intermediary == null || feather == null) {
-			throw new RuntimeException("Mappings are null");
+		if (intermediary.isEmpty() || feather.isEmpty()) {
+			throw new RuntimeException("Mappings are empty");
 		}
 
 		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
 
-		// Sorts in the order of minecraft release dates
-		intermediary = new ArrayList<>(intermediary);
-		intermediary.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
-		intermediary.forEach(version -> version.setStable(true));
-		feather = new ArrayList<>(feather);
-		feather.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
-		feather.forEach(version -> version.setStable(true));
+		BiFunction<Integer, String, Predicate<MavenBuildGameVersion>> p = (generation, src) -> {
+			return o -> {
+				if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+					System.out.println("Removing " + o.getGameVersion() + " from " + src + (generation < 1 ? "" : " gen" + generation) + " as it does not match a mc version");
+					return true;
+				}
+				return false;
+			};
+		};
+
+		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+			final int gen = generation;
+			intermediary.compute(generation, (key, value) -> {
+				// Sorts in the order of minecraft release dates
+				value = new ArrayList<>(value);
+				value.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+				value.forEach(version -> version.setStable(true));
+
+				// Remove entries that do not match a valid mc version.
+				value.removeIf(o -> {
+					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+						System.out.println("Removing " + o.getVersion() + " from intermediary v3" + (gen < 1 ? "" : " gen" + gen) + " as it does not match a mc version");
+						return true;
+					}
+					return false;
+				});
+
+				return value;
+			});
+			feather.compute(generation, (key, value) -> {
+				// Sorts in the order of minecraft release dates
+				value = new ArrayList<>(value);
+				value.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+				value.forEach(version -> version.setStable(true));				
+
+				// Remove entries that do not match a valid mc version.
+				value.removeIf(p.apply(gen, "v3 feather"));
+
+				return value;
+			});
+
+			List<String> minecraftVersions = new ArrayList<>();
+			for (MavenVersion gameVersion : intermediary.get(generation)) {
+				if (!minecraftVersions.contains(gameVersion.getVersionNoSide())) {
+					minecraftVersions.add(gameVersion.getVersionNoSide());
+				}
+			}
+
+			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList()));
+		}
+
 		nests = new ArrayList<>(nests);
 		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
 		nests.forEach(version -> version.setStable(true));
 
-		// Remove entries that do not match a valid mc version.
-		intermediary.removeIf(o -> {
-			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
-				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v3 intermediary)");
-				return true;
-			}
-			return false;
-		});
+		nests.removeIf(p.apply(-1, "v3 nests"));
+	}
 
-		Predicate<MavenBuildGameVersion> p = o -> {
-			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
-				System.out.println("Removing " + o.getGameVersion() + " as it is not match an mc version (v3 Feather/nests)");
-				return true;
-			}
-			return false;
-		};
-		feather.removeIf(p);
-		nests.removeIf(p);
+	public List<BaseVersion> getGame(int generation) {
+		return game.get(generation);
+	}
 
-		List<String> minecraftVersions = new ArrayList<>();
-		for (MavenVersion gameVersion : intermediary) {
-			if (!minecraftVersions.contains(gameVersion.getVersionNoSide())) {
-				minecraftVersions.add(gameVersion.getVersionNoSide());
-			}
-		}
+	public List<MavenVersion> getIntermediary(int generation) {
+		return intermediary.get(generation);
+	}
 
-		game = minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList());
+	public List<MavenBuildGameVersion> getFeather(int generation) {
+		return feather.get(generation);
 	}
 
 	public List<MavenBuildVersion> getLoader(LoaderType type) {

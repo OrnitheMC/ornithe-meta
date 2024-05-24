@@ -58,40 +58,42 @@ public class ProfileHandlerV3 {
 		EndpointsV3.fileDownload(type, "server", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::serverJson);
 	}
 
-	private static String getJsonFileName(LoaderInfoV3 info) {
-		return getJsonFileName(info, "json");
+	private static String getJsonFileName(int generation, LoaderInfoV3 info) {
+		return getJsonFileName(generation, info, "json");
 	}
 
-	private static String getZipFileName(LoaderInfoV3 info) {
-		return getJsonFileName(info, "zip");
+	private static String getZipFileName(int generation, LoaderInfoV3 info) {
+		return getJsonFileName(generation, info, "zip");
 	}
 
-	private static String getJsonFileName(LoaderInfoV3 info, String ext) {
-		return String.format("%s-loader-%s-%s-ornithe.%s",
+	private static String getJsonFileName(int generation, LoaderInfoV3 info, String ext) {
+		return String.format("%s-loader-%s-%s-ornithe-gen%d.%s",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(),
 				info.getIntermediary().getVersion(),
+				generation,
 				ext);
 	}
 
-	private static CompletableFuture<InputStream> profileJson(LoaderInfoV3 info) {
-		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(info, "client"), EXECUTOR);
+	private static CompletableFuture<InputStream> profileJson(int generation, LoaderInfoV3 info) {
+		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info, "client"), EXECUTOR);
 	}
 
-	private static CompletableFuture<InputStream> serverJson(LoaderInfoV3 info) {
-		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(info, "server"), EXECUTOR);
+	private static CompletableFuture<InputStream> serverJson(int generation, LoaderInfoV3 info) {
+		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info, "server"), EXECUTOR);
 	}
 
-	private static CompletableFuture<InputStream> profileZip(LoaderInfoV3 info) {
-		return profileJson(info)
-				.thenApply(inputStream -> packageZip(info, inputStream));
+	private static CompletableFuture<InputStream> profileZip(int generation, LoaderInfoV3 info) {
+		return profileJson(generation, info)
+				.thenApply(inputStream -> packageZip(generation, info, inputStream));
 	}
 
-	private static InputStream packageZip(LoaderInfoV3 info, InputStream profileJson)  {
-		String profileName = String.format("%s-loader-%s-%s-ornithe",
+	private static InputStream packageZip(int generation, LoaderInfoV3 info, InputStream profileJson)  {
+		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(), 
-				info.getIntermediary().getVersion());
+				info.getIntermediary().getVersion(),
+				generation);
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -114,19 +116,20 @@ public class ProfileHandlerV3 {
 		}
 	}
 
-	private static InputStream getProfileJsonStream(LoaderInfoV3 info, String side) {
-		JsonObject jsonObject = buildProfileJson(info, side);
+	private static InputStream getProfileJsonStream(int generation, LoaderInfoV3 info, String side) {
+		JsonObject jsonObject = buildProfileJson(generation, info, side);
 		return new ByteArrayInputStream(jsonObject.toString().getBytes());
 	}
 
 	//This is based of the installer code.
-	private static JsonObject buildProfileJson(LoaderInfoV3 info, String side) {
+	private static JsonObject buildProfileJson(int generation, LoaderInfoV3 info, String side) {
 		JsonObject launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("%s-loader-%s-%s-ornithe",
+		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
 				info.getLoaderType().getName(),
 				info.getLoader().getVersion(),
-				info.getGame(side));
+				info.getGame(side),
+				generation);
 
 		JsonArray libraries = ProfileLibraryManager.getLibraries(info, side);
 

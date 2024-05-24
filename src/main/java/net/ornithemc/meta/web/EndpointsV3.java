@@ -20,8 +20,9 @@ package net.ornithemc.meta.web;
 
 import io.javalin.core.util.Header;
 import io.javalin.http.Context;
-
+import io.javalin.http.Handler;
 import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
@@ -35,8 +36,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,38 +49,77 @@ public class EndpointsV3 {
 
 	public static void setup() {
 
-		WebServer.jsonGet("/v3/versions", () -> OrnitheMeta.database);
+		jsonGet("", () -> OrnitheMeta.database);
 
-		WebServer.jsonGet("/v3/versions/game", () -> OrnitheMeta.database.game);
-		WebServer.jsonGet("/v3/versions/game/intermediary", () -> compatibleGameVersions(OrnitheMeta.database.intermediary, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
-		WebServer.jsonGet("/v3/versions/game/feather", () -> compatibleGameVersions(OrnitheMeta.database.feather, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
-		WebServer.jsonGet("/v3/versions/game/nests", () -> compatibleGameVersions(OrnitheMeta.database.nests, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
+		jsonGetS("/game", generation -> () -> OrnitheMeta.database.getGame(generation));
+		jsonGetS("/game/intermediary", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getIntermediary(generation), BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		jsonGetS("/game/feather", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getFeather(generation), MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
+		jsonGet("/game/nests", () -> compatibleGameVersions(OrnitheMeta.database.nests, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
 
-		WebServer.jsonGet("/v3/versions/intermediary", () -> OrnitheMeta.database.intermediary);
-		WebServer.jsonGet("/v3/versions/intermediary/:game_version", context -> filter(context, OrnitheMeta.database.intermediary));
+		jsonGetS("/intermediary", generation -> () -> OrnitheMeta.database.getIntermediary(generation));
+		jsonGetF("/intermediary/:game_version", generation -> context -> filter(context, OrnitheMeta.database.getIntermediary(generation)));
 
-		WebServer.jsonGet("/v3/versions/feather", context -> withLimitSkip(context, OrnitheMeta.database.feather));
-		WebServer.jsonGet("/v3/versions/feather/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.feather)));
+		jsonGetF("/feather", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getFeather(generation)));
+		jsonGetF("/feather/:game_version", generation -> context -> withLimitSkip(context, filter(context, OrnitheMeta.database.getFeather(generation))));
 
-		WebServer.jsonGet("/v3/versions/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
-		WebServer.jsonGet("/v3/versions/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
+		jsonGet("/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
+		jsonGet("/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
 
-		WebServer.jsonGet("/v3/versions/fabric-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.FABRIC)));
-		WebServer.jsonGet("/v3/versions/fabric-loader/:game_version", context -> withLimitSkip(context, getLoaderInfoAll(context, LoaderType.FABRIC)));
-		WebServer.jsonGet("/v3/versions/fabric-loader/:game_version/:loader_version", context -> getLoaderInfo(context, LoaderType.FABRIC));
+		jsonGet("/fabric-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.FABRIC)));
+		jsonGetF("/fabric-loader/:game_version", generation -> context -> withLimitSkip(context, getLoaderInfoAll(context, generation, LoaderType.FABRIC)));
+		jsonGetF("/fabric-loader/:game_version/:loader_version", generation -> context -> getLoaderInfo(context, generation, LoaderType.FABRIC));
 
-		WebServer.jsonGet("/v3/versions/quilt-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.QUILT)));
-		WebServer.jsonGet("/v3/versions/quilt-loader/:game_version", context -> withLimitSkip(context, getLoaderInfoAll(context, LoaderType.QUILT)));
-		WebServer.jsonGet("/v3/versions/quilt-loader/:game_version/:loader_version", context -> getLoaderInfo(context, LoaderType.QUILT));
+		jsonGet("/quilt-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.QUILT)));
+		jsonGetF("/quilt-loader/:game_version", generation -> context -> withLimitSkip(context, getLoaderInfoAll(context, generation, LoaderType.QUILT)));
+		jsonGetF("/quilt-loader/:game_version/:loader_version", generation -> context -> getLoaderInfo(context, generation, LoaderType.QUILT));
 
-		WebServer.jsonGet("/v3/versions/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
+		jsonGet("/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
-		WebServer.jsonGet("/v3/versions/osl", context -> withLimitSkip(context, OrnitheMeta.database.osl));
-		WebServer.jsonGet("/v3/versions/osl/:version", context -> withLimitSkip(context, getOslDependencyInfo(context)));
-		WebServer.jsonGet("/v3/versions/osl/:module/:game_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
-		WebServer.jsonGet("/v3/versions/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
+		jsonGet("/osl", context -> withLimitSkip(context, OrnitheMeta.database.osl));
+		jsonGet("/osl/:version", context -> withLimitSkip(context, getOslDependencyInfo(context)));
+		jsonGet("/osl/:module/:game_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
+		jsonGet("/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
 
 		ProfileHandlerV3.setup();
+	}
+
+	private static <T> void jsonGet(String path, Supplier<T> supplier) {
+		WebServer.jsonGet("/v3/versions" + path, supplier);
+	}
+
+	private static <T> void jsonGet(String path, Function<Context, T> function) {
+		WebServer.jsonGet("/v3/versions" + path, function);
+	}
+
+	private static <T> void jsonGetS(String path, Function<Integer, Supplier<T>> supplier) {
+		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, supplier.apply(generation));
+
+			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+				WebServer.javalin.get("/v3/versions" + path, handler);
+			}
+		}
+	}
+
+	private static <T> void jsonGetF(String path, Function<Integer, Function<Context, T>> function) {
+		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, function.apply(generation));
+
+			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+				WebServer.javalin.get("/v3/versions" + path, handler);
+			}
+		}
+	}
+
+	private static <T> void jsonGetH(String path, Function<Integer, Handler> function) {
+		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+			Handler handler = function.apply(generation);
+			WebServer.javalin.get("/v3/versions/gen" + generation + path, handler);
+
+			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+				WebServer.javalin.get("/v3/versions" + path, handler);
+			}
+		}
 	}
 
 	private static <T> List<T> withLimitSkip(Context context, List<T> list) {
@@ -104,7 +146,7 @@ public class EndpointsV3 {
 
 	}
 
-	private static Object getLoaderInfo(Context context, LoaderType type) {
+	private static Object getLoaderInfo(Context context, int generation, LoaderType type) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
@@ -119,7 +161,7 @@ public class EndpointsV3 {
 			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
 			.findFirst().orElse(null);
 
-		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
+		MavenVersion mappings = OrnitheMeta.database.getIntermediary(generation).stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -134,13 +176,13 @@ public class EndpointsV3 {
 		return new LoaderInfoV3(type, loader, mappings).populateMeta();
 	}
 
-	private static List<?> getLoaderInfoAll(Context context, LoaderType type) {
+	private static List<?> getLoaderInfoAll(Context context, int generation, LoaderType type) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
 		String gameVersion = context.pathParam("game_version");
 
-		MavenVersion mappings = OrnitheMeta.database.intermediary.stream()
+		MavenVersion mappings = OrnitheMeta.database.getIntermediary(generation).stream()
 			.filter(t -> t.test(gameVersion))
 			.findFirst().orElse(null);
 
@@ -237,20 +279,20 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	public static void fileDownload(LoaderType type, String path, String ext, Function<LoaderInfoV3, String> fileNameFunction, Function<LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
-		WebServer.javalin.get("/v3/versions/" + type.getName() + "-loader/:game_version/:loader_version/" + path + "/" + ext, ctx -> {
-			Object obj = getLoaderInfo(ctx, type);
+	public static void fileDownload(LoaderType type, String path, String ext, BiFunction<Integer, LoaderInfoV3, String> fileNameFunction, BiFunction<Integer, LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
+		jsonGetH("/" + type.getName() + "-loader/:game_version/:loader_version/" + path + "/" + ext, generation -> ctx -> {
+			Object obj = getLoaderInfo(ctx, generation, type);
 
 			if (obj instanceof String) {
 				ctx.result((String) obj);
 			} else if (obj instanceof LoaderInfoV3) {
 				LoaderInfoV3 versionInfo = (LoaderInfoV3) obj;
 
-				CompletableFuture<InputStream> streamFuture = streamSupplier.apply(versionInfo);
+				CompletableFuture<InputStream> streamFuture = streamSupplier.apply(generation, versionInfo);
 
 				if (ext.equals("zip")) {
 					//Set the filename to download
-					ctx.header(Header.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", fileNameFunction.apply(versionInfo)));
+					ctx.header(Header.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", fileNameFunction.apply(generation, versionInfo)));
 
 					ctx.contentType("application/zip");
 				} else {
