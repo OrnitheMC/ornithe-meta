@@ -77,13 +77,13 @@ public class VersionDatabase {
 	public static final PomParser intermediaryParser(int generation) {
 		return generation == 1
 			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml")
-			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml");
+			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
 	}
 
 	public static final PomParser featherParser(int generation) {
 		return generation == 1
 			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml")
-			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml");
+			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
 	}
 
 	public static final Map<String, PomParser> getOslModulePomParsers(List<MavenVersion> osl) {

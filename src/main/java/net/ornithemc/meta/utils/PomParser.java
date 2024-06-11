@@ -38,12 +38,18 @@ import java.util.stream.Collectors;
 public class PomParser {
 
 	public String path;
+	public boolean require;
 
 	public String latestVersion = "";
 	public List<String> versions = new ArrayList<>();
 
 	public PomParser(String path) {
+		this(path, true);
+	}
+
+	public PomParser(String path, boolean require) {
 		this.path = path;
+		this.require = require;
 	}
 
 	private void load() throws IOException, XMLStreamException {
@@ -72,7 +78,9 @@ public class PomParser {
 		try {
 			load();
 		} catch (IOException e){
-			throw new IOException("Failed to load " + path, e);
+			if (require) {
+				throw new IOException("Failed to load " + path, e);
+			}
 		}
 
 		List<T> list = versions.stream()
