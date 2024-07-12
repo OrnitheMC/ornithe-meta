@@ -67,6 +67,8 @@ public class VersionDatabase {
 	public static final int LATEST_GENERATION = 2;
 	public static final int LATEST_STABLE_GENERATION = 1;
 
+	public static final PomParser RAVEN_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/raven/maven-metadata.xml");
+	public static final PomParser SPARROW_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/sparrow/maven-metadata.xml");
 	public static final PomParser NESTS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/nests/maven-metadata.xml");
 	public static final PomParser FABRIC_LOADER_PARSER = new PomParser(FABRIC_MAVEN_URL + "net/fabricmc/fabric-loader/maven-metadata.xml");
 	public static final PomParser QUILT_LOADER_PARSER = new PomParser(QUILT_MAVEN_URL + "org/quiltmc/quilt-loader/maven-metadata.xml");
@@ -138,6 +140,8 @@ public class VersionDatabase {
 
 	public final VersionManifest manifest = new VersionManifest();
 
+	public List<MavenBuildGameVersion> raven;
+	public List<MavenBuildGameVersion> sparrow;
 	public List<MavenBuildGameVersion> nests;
 	public List<MavenUrlVersion> installer;
 	public List<MavenVersion> osl;
@@ -158,6 +162,8 @@ public class VersionDatabase {
 			database.intermediary.put(generation, intermediaryParser(generation).getMeta(MavenVersion::new, generation == 1 ? "net.ornithemc:calamus-intermediary:" : String.format("net.ornithemc:calamus-intermediary-gen%d:", generation)));
 			database.feather.put(generation, featherParser(generation).getMeta(MavenBuildGameVersion::new, generation == 1 ? "net.ornithemc:feather:" : String.format("net.ornithemc:feather-gen%d:", generation)));
 		}
+		database.raven = RAVEN_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:raven:");
+		database.sparrow = SPARROW_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:sparrow:");
 		database.nests = NESTS_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:nests:");
 		database.loader.put(LoaderType.FABRIC, FABRIC_LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.fabricmc:fabric-loader:", list -> {
 			for (BaseVersion version : list) {
@@ -251,10 +257,18 @@ public class VersionDatabase {
 			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList()));
 		}
 
+		raven = new ArrayList<>(raven);
+		raven.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+		raven.forEach(version -> version.setStable(true));
+		sparrow = new ArrayList<>(sparrow);
+		sparrow.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+		sparrow.forEach(version -> version.setStable(true));
 		nests = new ArrayList<>(nests);
 		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
 		nests.forEach(version -> version.setStable(true));
 
+		raven.removeIf(p.apply(-1, "v3 raven"));
+		sparrow.removeIf(p.apply(-1, "v3 sparrow"));
 		nests.removeIf(p.apply(-1, "v3 nests"));
 	}
 

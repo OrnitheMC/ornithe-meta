@@ -62,6 +62,12 @@ public class EndpointsV3 {
 		jsonGetF("/feather", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getFeather(generation)));
 		jsonGetF("/feather/:game_version", generation -> context -> withLimitSkip(context, filter(context, OrnitheMeta.database.getFeather(generation))));
 
+		jsonGet("/raven", context -> withLimitSkip(context, OrnitheMeta.database.raven));
+		jsonGet("/raven/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.raven)));
+
+		jsonGet("/sparrow", context -> withLimitSkip(context, OrnitheMeta.database.sparrow));
+		jsonGet("/sparrow/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.sparrow)));
+
 		jsonGet("/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
 		jsonGet("/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
 
