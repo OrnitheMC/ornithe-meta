@@ -46,7 +46,7 @@ public class ProfileLibraryManager {
 		LIBRARIES.add(Library.library("com.google.code.gson:gson:2.10"));
 
 		// logger-config is needed to make log4j work in versions prior to 13w39a
-		LIBRARIES.add(Library.library("net.ornithemc:logger-config:1.0.0").withUrl(VersionDatabase.ORNITHE_MAVEN_URL).upTo("13w38c"));
+		LIBRARIES.add(Library.library("net.ornithemc:logger-config:1.0.0").withUrl(VersionDatabase.ORNITHE_MAVEN_URL).upTo("1.7.0-alpha.13.38.c"));
 		LIBRARIES.add(Library.library("com.google.guava:guava:14.0").upTo("1.5.2"));
 		LIBRARIES.add(Library.library("commons-codec:commons-codec:1.9").upTo("1.7.5"));
 		LIBRARIES.add(Library.library("org.apache.commons:commons-compress:1.8.1").upTo("1.7.10"));
