@@ -38,20 +38,23 @@ public class ProfileLibraryManager {
 
 		// the slf4j binding for log4j - this version has been tested to work on 1.6, 1.11, 1.12
 		// lower versions of mc not tested because they did not yet ship log4j to begin with
-		LIBRARIES.add(Library.all("org.slf4j:slf4j-api:2.0.1"));
-		LIBRARIES.add(Library.all("org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0"));
-		LIBRARIES.add(Library.all("org.apache.logging.log4j:log4j-api:2.19.0", "org.apache.logging.log4j:log4j-core:2.19.0"));
-		LIBRARIES.add(Library.all("it.unimi.dsi:fastutil:8.5.9"));
-		LIBRARIES.add(Library.all("com.google.code.gson:gson:2.10"));
+		LIBRARIES.add(Library.library("org.slf4j:slf4j-api:2.0.1"));
+		LIBRARIES.add(Library.library("org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0"));
+		LIBRARIES.add(Library.library("org.apache.logging.log4j:log4j-api:2.19.0"));
+		LIBRARIES.add(Library.library("org.apache.logging.log4j:log4j-core:2.19.0"));
+		LIBRARIES.add(Library.library("it.unimi.dsi:fastutil:8.5.9"));
+		LIBRARIES.add(Library.library("com.google.code.gson:gson:2.10"));
 
-		LIBRARIES.add(Library.upTo("1.5.2", "com.google.guava:guava:14.0"));
-		LIBRARIES.add(Library.upTo("1.7.5", "commons-codec:commons-codec:1.9"));
-		LIBRARIES.add(Library.upTo("1.7.10", "org.apache.commons:commons-compress:1.8.1"));
-		LIBRARIES.add(Library.upTo("1.5.2", "commons-io:commons-io:2.4"));
-		LIBRARIES.add(Library.upTo("1.5.2", "org.apache.commons:commons-lang3:3.1"));
-		LIBRARIES.add(Library.upTo("1.7.10", "commons-logging:commons-logging:1.1.3"));
-		LIBRARIES.add(Library.upTo("1.7.9", "org.apache.httpcomponents:httpcore:4.3.2"));
-		LIBRARIES.add(Library.upTo("1.7.9", "org.apache.httpcomponents:httpclient:4.3.3"));
+		// logger-config is needed to make log4j work in versions prior to 13w39a
+		LIBRARIES.add(Library.library("net.ornithemc:logger-config:1.0.0").withUrl(VersionDatabase.ORNITHE_MAVEN_URL).upTo("13w38c"));
+		LIBRARIES.add(Library.library("com.google.guava:guava:14.0").upTo("1.5.2"));
+		LIBRARIES.add(Library.library("commons-codec:commons-codec:1.9").upTo("1.7.5"));
+		LIBRARIES.add(Library.library("org.apache.commons:commons-compress:1.8.1").upTo("1.7.10"));
+		LIBRARIES.add(Library.library("commons-io:commons-io:2.4").upTo("1.5.2"));
+		LIBRARIES.add(Library.library("org.apache.commons:commons-lang3:3.1").upTo("1.5.2"));
+		LIBRARIES.add(Library.library("commons-logging:commons-logging:1.1.3").upTo("1.7.10"));
+		LIBRARIES.add(Library.library("org.apache.httpcomponents:httpcore:4.3.2").upTo("1.7.9"));
+		LIBRARIES.add(Library.library("org.apache.httpcomponents:httpclient:4.3.3").upTo("1.7.9"));
 	}
 
 	public static JsonArray getLibraries(LoaderInfoV3 info, String side) {
@@ -73,9 +76,7 @@ public class ProfileLibraryManager {
 			boolean maxSatisfied = (library.maxVersion == null || mcVersion.compareTo(library.maxVersion) <= 0);
 
 			if (minSatisfied && maxSatisfied) {
-				for (String maven : library.maven) {
-					libraries.add(getLibrary(maven, VersionDatabase.MINECRAFT_LIBRARIES_URL));
-				}
+				libraries.add(getLibrary(library.name, library.url));
 			}
 		}
 
@@ -93,28 +94,34 @@ public class ProfileLibraryManager {
 
 		private final Semver minVersion;
 		private final Semver maxVersion;
-		private final String[] maven;
+		private final String name;
+		private final String url;
 
-		public static Library all(String... maven) {
-			return new Library(null, null, maven);
+		public static Library library(String name) {
+			return new Library(null, null, name, VersionDatabase.MINECRAFT_LIBRARIES_URL);
 		}
 
-		public static Library from(String minVersion, String... maven) {
-			return new Library(new Semver(minVersion), null, maven);
+		public Library from(String minVersion) {
+			return new Library(new Semver(minVersion), maxVersion, name, url);
 		}
 
-		public static Library upTo(String maxVersion, String... maven) {
-			return new Library(null, new Semver(maxVersion), maven);
+		public Library upTo(String maxVersion) {
+			return new Library(minVersion, new Semver(maxVersion), name, url);
 		}
 
-		public static Library between(String minVersion, String maxVersion, String... maven) {
-			return new Library(new Semver(minVersion), new Semver(maxVersion), maven);
+		public Library between(String minVersion, String maxVersion) {
+			return new Library(new Semver(minVersion), new Semver(maxVersion), name, url);
 		}
 
-		private Library(Semver minVersion, Semver maxVersion, String... maven) {
+		public Library withUrl(String url) {
+			return new Library(minVersion, maxVersion, name, url);
+		}
+
+		private Library(Semver minVersion, Semver maxVersion, String name, String url) {
 			this.minVersion = minVersion;
 			this.maxVersion = maxVersion;
-			this.maven = maven;
+			this.name = name;
+			this.url = url;
 		}
 	}
 }
