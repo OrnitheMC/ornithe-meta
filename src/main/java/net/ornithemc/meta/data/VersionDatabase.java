@@ -51,7 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -204,20 +204,12 @@ public class VersionDatabase {
 			throw new RuntimeException("Mappings are empty");
 		}
 
-		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
-
-		BiFunction<Integer, String, Predicate<MavenBuildGameVersion>> p = (generation, src) -> {
-			return o -> {
-				if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
-					System.out.println("Removing " + o.getGameVersion() + " from " + src + (generation < 1 ? "" : " gen" + generation) + " as it does not match a mc version");
-					return true;
-				}
-				return false;
-			};
-		};
+		Int2ObjectMap<MinecraftLauncherMeta> launcherMetas = new Int2ObjectOpenHashMap<>();;
 
 		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
 			final int gen = generation;
+			final MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getSortedMeta(gen);
+			launcherMetas.put(generation, launcherMeta);
 			intermediary.compute(generation, (key, value) -> {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
@@ -242,7 +234,13 @@ public class VersionDatabase {
 				value.forEach(version -> version.setStable(true));				
 
 				// Remove entries that do not match a valid mc version.
-				value.removeIf(p.apply(gen, "v3 feather"));
+				value.removeIf(o -> {
+					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+						System.out.println("Removing " + o.getGameVersion() + " from v3 feather" + " gen" + gen + " as it does not match a mc version");
+						return true;
+					}
+					return false;
+				});
 
 				return value;
 			});
@@ -257,19 +255,41 @@ public class VersionDatabase {
 			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList()));
 		}
 
+		Function<String, Predicate<MavenBuildGameVersion>> p = src -> {
+			return o -> {
+				for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+					if (launcherMetas.get(generation).getVersions().stream().anyMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+						return false;
+					}
+				}
+				System.out.println("Removing " + o.getGameVersion() + " from " + src + " as it does not match a mc version");
+				return true;
+			};
+		};
+		Comparator<MavenBuildGameVersion> c = (v1, v2) -> {
+			int i1 = Integer.MAX_VALUE;
+			int i2 = Integer.MAX_VALUE;
+			for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+				MinecraftLauncherMeta launcherMeta = launcherMetas.get(generation);
+				i1 = Math.min(i1, launcherMeta.getIndex(v1.getVersionNoSide()));
+				i2 = Math.min(i2, launcherMeta.getIndex(v2.getVersionNoSide()));
+			}
+			return Integer.compare(i1, i2);
+		};
+
 		raven = new ArrayList<>(raven);
-		raven.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+		raven.sort(c);
 		raven.forEach(version -> version.setStable(true));
 		sparrow = new ArrayList<>(sparrow);
-		sparrow.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+		sparrow.sort(c);
 		sparrow.forEach(version -> version.setStable(true));
 		nests = new ArrayList<>(nests);
-		nests.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+		nests.sort(c);
 		nests.forEach(version -> version.setStable(true));
 
-		raven.removeIf(p.apply(-1, "v3 raven"));
-		sparrow.removeIf(p.apply(-1, "v3 sparrow"));
-		nests.removeIf(p.apply(-1, "v3 nests"));
+		raven.removeIf(p.apply("v3 raven"));
+		sparrow.removeIf(p.apply("v3 sparrow"));
+		nests.removeIf(p.apply("v3 nests"));
 	}
 
 	public List<BaseVersion> getGame(int generation) {

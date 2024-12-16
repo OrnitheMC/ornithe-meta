@@ -37,14 +37,21 @@ public class MinecraftLauncherMeta {
 		this.versions = versions;
 	}
 
-	public static MinecraftLauncherMeta getMeta() throws IOException {
-		String url = "https://skyrising.github.io/mc-versions/version_manifest.json";
+	public static MinecraftLauncherMeta getMeta(int generation) throws IOException {
+		String url;
+		if (generation < 1) {
+			throw new IllegalArgumentException("invalid generation " + generation);
+		} else if (generation == 1) {
+			url = "https://skyrising.github.io/mc-versions/version_manifest.json";
+		} else {
+			url = "https://ornithemc.net/mc-versions/version_manifest.json";
+		}
 		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
 		return GSON.fromJson(json, MinecraftLauncherMeta.class);
 	}
 
-	public static MinecraftLauncherMeta getAllMeta() throws IOException {
-		List<Version> versions = new ArrayList<>(getMeta().versions);
+	public static MinecraftLauncherMeta getSortedMeta(int generation) throws IOException {
+		List<Version> versions = new ArrayList<>(getMeta(generation).versions);
 
 		// Order by release time
 		versions.sort(Comparator.comparing(Version::getReleaseTime).reversed());

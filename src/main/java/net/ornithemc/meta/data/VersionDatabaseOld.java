@@ -71,7 +71,7 @@ public class VersionDatabaseOld {
 		if (calamus == null) {
 			throw new RuntimeException("Mappings are null");
 		}
-		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getAllMeta();
+		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getSortedMeta(1);
 
 		//Sorts in the order of minecraft release dates
 		calamus = new ArrayList<>(calamus);
