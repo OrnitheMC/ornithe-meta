@@ -18,7 +18,7 @@
 
 package net.ornithemc.meta.web.models;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import net.ornithemc.meta.utils.LoaderMetaV3;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +29,7 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 	MavenVersion intermediary;
 
 	@Nullable
-	JsonObject launcherMeta;
+	JsonNode launcherMeta;
 
 	public LoaderInfoV3(LoaderType type, MavenBuildVersion loader, MavenVersion intermediary) {
 		this.type = type;
@@ -66,7 +66,7 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 	}
 
 	@Nullable
-	public JsonObject getLauncherMeta() {
+	public JsonNode getLauncherMeta() {
 		return launcherMeta;
 	}
 }

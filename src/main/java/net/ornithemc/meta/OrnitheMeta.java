@@ -18,6 +18,8 @@
 
 package net.ornithemc.meta;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.data.VersionDatabaseOld;
 import net.ornithemc.meta.web.WebServer;
@@ -33,6 +35,7 @@ public class OrnitheMeta
 
 	public static volatile VersionDatabaseOld databaseOld;
 	public static volatile VersionDatabase database;
+	public static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public static void main(String[] args) {
 

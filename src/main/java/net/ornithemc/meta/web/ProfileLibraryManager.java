@@ -18,16 +18,16 @@
 
 package net.ornithemc.meta.web;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vdurmont.semver4j.Semver;
-
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ProfileLibraryManager {
 
@@ -57,19 +57,19 @@ public class ProfileLibraryManager {
 		LIBRARIES.add(Library.library("org.apache.httpcomponents:httpclient:4.3.3").upTo("1.7.9"));
 	}
 
-	public static JsonArray getLibraries(LoaderInfoV3 info, String side) {
-		JsonObject launcherMeta = info.getLauncherMeta();
+	public static ArrayNode getLibraries(LoaderInfoV3 info, String side) {
+		JsonNode launcherMeta = info.getLauncherMeta();
 
-		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
+		JsonNode librariesNode = launcherMeta.get("libraries");
 		// Build the libraries array with the existing libs + loader and intermediary
-		JsonArray libraries = (JsonArray) librariesObject.get("common");
+		ArrayNode libraries = (ArrayNode) librariesNode.get("common");
 		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
 
 		Semver mcVersion = OrnitheMeta.database.manifest.get(info.getGame(side));
 
-		if (librariesObject.has(side)) {
-			libraries.addAll(librariesObject.get(side).getAsJsonArray());
+		if (librariesNode.has(side)) {
+			libraries.addAll((ArrayNode) librariesNode.get(side));
 		}
 		for (Library library : LIBRARIES) {
 			boolean minSatisfied = (library.minVersion == null || mcVersion.compareTo(library.minVersion) >= 0);
@@ -83,11 +83,11 @@ public class ProfileLibraryManager {
 		return libraries;
 	}
 
-	private static JsonObject getLibrary(String mavenPath, String url) {
-		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("name", mavenPath);
-		jsonObject.addProperty("url", url);
-		return jsonObject;
+	private static JsonNode getLibrary(String mavenPath, String url) {
+		ObjectNode objectNode = OrnitheMeta.MAPPER.createObjectNode();
+		objectNode.put("name", mavenPath);
+		objectNode.put("url", url);
+		return objectNode;
 	}
 
 	private static class Library {
@@ -96,6 +96,13 @@ public class ProfileLibraryManager {
 		private final Semver maxVersion;
 		private final String name;
 		private final String url;
+
+		private Library(Semver minVersion, Semver maxVersion, String name, String url) {
+			this.minVersion = minVersion;
+			this.maxVersion = maxVersion;
+			this.name = name;
+			this.url = url;
+		}
 
 		public static Library library(String name) {
 			return new Library(null, null, name, VersionDatabase.MINECRAFT_LIBRARIES_URL);
@@ -115,13 +122,6 @@ public class ProfileLibraryManager {
 
 		public Library withUrl(String url) {
 			return new Library(minVersion, maxVersion, name, url);
-		}
-
-		private Library(Semver minVersion, Semver maxVersion, String name, String url) {
-			this.minVersion = minVersion;
-			this.maxVersion = maxVersion;
-			this.name = name;
-			this.url = url;
 		}
 	}
 }

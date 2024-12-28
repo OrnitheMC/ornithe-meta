@@ -18,22 +18,25 @@
 
 package net.ornithemc.meta.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import net.ornithemc.meta.OrnitheMeta;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
+@JsonIgnoreProperties({"$schema", "latest"})
 public class MinecraftLauncherMeta {
-
-	public static final Gson GSON = new GsonBuilder().create();
 
 	List<Version> versions;
 
-	private MinecraftLauncherMeta(List<Version> versions) {
+	public MinecraftLauncherMeta(@JsonProperty("versions") List<Version> versions) {
 		this.versions = versions;
 	}
 
@@ -47,7 +50,7 @@ public class MinecraftLauncherMeta {
 			url = "https://ornithemc.net/mc-versions/version_manifest.json";
 		}
 		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
-		return GSON.fromJson(json, MinecraftLauncherMeta.class);
+		return OrnitheMeta.MAPPER.readValue(json, MinecraftLauncherMeta.class);
 	}
 
 	public static MinecraftLauncherMeta getSortedMeta(int generation) throws IOException {
@@ -63,9 +66,9 @@ public class MinecraftLauncherMeta {
 		return versions.stream().anyMatch(version -> version.id.equals(id) && version.type.equals("release"));
 	}
 
-	public int getIndex(String version){
+	public int getIndex(String version) {
 		for (int i = 0; i < versions.size(); i++) {
-			if(versions.get(i).id.equals(version)){
+			if (versions.get(i).id.equals(version)) {
 				return i;
 			}
 		}
@@ -83,6 +86,7 @@ public class MinecraftLauncherMeta {
 		String url;
 		String time;
 		String releaseTime;
+		String details;
 
 		public String getId() {
 			return id;
@@ -98,6 +102,10 @@ public class MinecraftLauncherMeta {
 
 		public String getTime() {
 			return time;
+		}
+
+		public String getDetails() {
+			return details;
 		}
 
 		public String getReleaseTime() {

@@ -18,13 +18,13 @@
 
 package net.ornithemc.meta.web;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.javalin.Javalin;
 import io.javalin.core.util.Header;
 import io.javalin.core.util.RouteOverviewPlugin;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
+import net.ornithemc.meta.OrnitheMeta;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,7 +32,6 @@ import java.util.function.Supplier;
 public class WebServer {
 
 	public static Javalin javalin;
-	public static Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
 	public static void start() {
 		javalin = Javalin.create(config -> {
@@ -63,12 +62,12 @@ public class WebServer {
 		return handler;
 	}
 
-	private static void handleJson(Context ctx, Object object) {
+	private static void handleJson(Context ctx, Object object) throws JsonProcessingException {
 		if (object == null) {
 			object = new Object();
 			ctx.status(400);
 		}
-		String response = GSON.toJson(object);
+		String response = OrnitheMeta.MAPPER.writeValueAsString(object);
 		ctx.contentType("application/json").header(Header.CACHE_CONTROL, "public, max-age=60").result(response);
 	}
 

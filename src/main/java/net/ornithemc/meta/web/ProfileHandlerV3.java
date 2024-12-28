@@ -18,6 +18,14 @@
 
 package net.ornithemc.meta.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.web.models.LoaderInfoV3;
+import net.ornithemc.meta.web.models.LoaderType;
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,15 +39,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-import org.apache.commons.io.IOUtils;
-
-import net.ornithemc.meta.web.models.LoaderInfoV3;
-import net.ornithemc.meta.web.models.LoaderType;
 
 public class ProfileHandlerV3 {
 
@@ -88,17 +87,17 @@ public class ProfileHandlerV3 {
 				.thenApply(inputStream -> packageZip(generation, info, inputStream));
 	}
 
-	private static InputStream packageZip(int generation, LoaderInfoV3 info, InputStream profileJson)  {
+	private static InputStream packageZip(int generation, LoaderInfoV3 info, InputStream profileJson) {
 		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
 				info.getLoaderType().getName(),
-				info.getLoader().getVersion(), 
+				info.getLoader().getVersion(),
 				info.getIntermediary().getVersion(),
 				generation);
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-			try (ZipOutputStream zipStream = new ZipOutputStream(byteArrayOutputStream))  {
+			try (ZipOutputStream zipStream = new ZipOutputStream(byteArrayOutputStream)) {
 				//Write the profile json
 				zipStream.putNextEntry(new ZipEntry(profileName + "/" + profileName + ".json"));
 				IOUtils.copy(profileJson, zipStream);
@@ -117,13 +116,13 @@ public class ProfileHandlerV3 {
 	}
 
 	private static InputStream getProfileJsonStream(int generation, LoaderInfoV3 info, String side) {
-		JsonObject jsonObject = buildProfileJson(generation, info, side);
-		return new ByteArrayInputStream(jsonObject.toString().getBytes());
+		JsonNode jsonNode = buildProfileJson(generation, info, side);
+		return new ByteArrayInputStream(jsonNode.toString().getBytes());
 	}
 
 	//This is based of the installer code.
-	private static JsonObject buildProfileJson(int generation, LoaderInfoV3 info, String side) {
-		JsonObject launcherMeta = info.getLauncherMeta();
+	private static JsonNode buildProfileJson(int generation, LoaderInfoV3 info, String side) {
+		JsonNode launcherMeta = info.getLauncherMeta();
 
 		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
 				info.getLoaderType().getName(),
@@ -131,41 +130,41 @@ public class ProfileHandlerV3 {
 				info.getGame(side),
 				generation);
 
-		JsonArray libraries = ProfileLibraryManager.getLibraries(info, side);
+		ArrayNode libraries = ProfileLibraryManager.getLibraries(info, side);
 
 		String currentTime = ISO_8601.format(new Date());
 
-		JsonObject profile = new JsonObject();
-		profile.addProperty("id", profileName);
-		profile.addProperty("inheritsFrom", String.format("%s-vanilla", info.getGame(side)));
-		profile.addProperty("releaseTime", currentTime);
-		profile.addProperty("time", currentTime);
-		profile.addProperty("type", "release");
+		ObjectNode profile = OrnitheMeta.MAPPER.createObjectNode();
+		profile.put("id", profileName);
+		profile.put("inheritsFrom", String.format("%s-vanilla", info.getGame(side)));
+		profile.put("releaseTime", currentTime);
+		profile.put("time", currentTime);
+		profile.put("type", "release");
 
-		JsonElement mainClassElement = launcherMeta.get("mainClass");
+		JsonNode mainClassNode = launcherMeta.get("mainClass");
 		String mainClass;
 
-		if (mainClassElement.isJsonObject()) {
-			mainClass = mainClassElement.getAsJsonObject().get(side).getAsString();
+		if (mainClassNode.isObject()) {
+			mainClass = mainClassNode.get(side).asText();
 		} else {
-			mainClass = mainClassElement.getAsString();
+			mainClass = mainClassNode.asText();
 		}
 
-		profile.addProperty("mainClass", mainClass);
+		profile.put("mainClass", mainClass);
 
-		if ("server".equals(side) && launcherMeta.has("mainClass") && launcherMeta.get("mainClass").getAsJsonObject().has("serverLauncher")) {
+		if ("server".equals(side) && launcherMeta.has("mainClass") && launcherMeta.get("mainClass").has("serverLauncher")) {
 			// Add the server launch main class
-			profile.addProperty("launcherMainClass", launcherMeta.get("mainClass").getAsJsonObject().get("serverLauncher").getAsString());
+			profile.put("launcherMainClass", launcherMeta.get("mainClass").get("serverLauncher").asText());
 		}
 
-		JsonObject arguments = new JsonObject();
+		ObjectNode arguments = OrnitheMeta.MAPPER.createObjectNode();
 
 		// I believe this is required to stop the launcher from complaining
-		arguments.add("game", new JsonArray());
+		arguments.putArray("game");
 
-		profile.add("arguments", arguments);
+		profile.set("arguments", arguments);
 
-		profile.add("libraries", libraries);
+		profile.put("libraries", libraries);
 
 		return profile;
 	}

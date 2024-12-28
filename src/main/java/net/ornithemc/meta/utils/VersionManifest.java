@@ -18,17 +18,16 @@
 
 package net.ornithemc.meta.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.vdurmont.semver4j.Semver;
+import net.ornithemc.meta.OrnitheMeta;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import com.vdurmont.semver4j.Semver;
 
 public class VersionManifest {
 
@@ -43,8 +42,8 @@ public class VersionManifest {
 	public Semver get(String id) {
 		return versions.computeIfAbsent(id, key -> {
 			try (InputStreamReader input = new InputStreamReader(new URL(String.format(DETAILS_URL, id)).openStream())) {
-				JsonObject details = JsonParser.parseReader(input).getAsJsonObject();
-				String normalized = details.get("normalizedVersion").getAsString();
+				JsonNode details = OrnitheMeta.MAPPER.readTree(input);
+				String normalized = details.get("normalizedVersion").asText();
 
 				return new Semver(normalized);
 			} catch (IOException e) {

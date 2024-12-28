@@ -18,39 +18,23 @@
 
 package net.ornithemc.meta.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.PomDependencyParser;
 import net.ornithemc.meta.utils.PomParser;
 import net.ornithemc.meta.utils.VersionManifest;
-import net.ornithemc.meta.web.models.BaseVersion;
-import net.ornithemc.meta.web.models.LoaderType;
-import net.ornithemc.meta.web.models.MavenBuildGameVersion;
-import net.ornithemc.meta.web.models.MavenBuildVersion;
-import net.ornithemc.meta.web.models.MavenUrlVersion;
-import net.ornithemc.meta.web.models.MavenVersion;
+import net.ornithemc.meta.web.models.*;
 
 import javax.xml.stream.XMLStreamException;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -75,17 +59,37 @@ public class VersionDatabase {
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 	public static final PomParser OSL_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/maven-metadata.xml");
 	public static final PomDependencyParser OSL_DEPENDENCY_PARSER = new PomDependencyParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl");
+	public final VersionManifest manifest = new VersionManifest();
+	private final Int2ObjectMap<List<BaseVersion>> game;
+	private final Int2ObjectMap<List<MavenVersion>> intermediary;
+	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
+	private final Map<LoaderType, List<MavenBuildVersion>> loader;
+	private final Map<String, List<MavenVersion>> oslDependencies;
+	private final Map<String, List<MavenVersion>> oslModules;
+	public List<MavenBuildGameVersion> raven;
+	public List<MavenBuildGameVersion> sparrow;
+	public List<MavenBuildGameVersion> nests;
+	public List<MavenUrlVersion> installer;
+	public List<MavenVersion> osl;
+	private VersionDatabase() {
+		this.game = new Int2ObjectOpenHashMap<>();
+		this.intermediary = new Int2ObjectOpenHashMap<>();
+		this.feather = new Int2ObjectOpenHashMap<>();
+		this.loader = new EnumMap<>(LoaderType.class);
+		this.oslDependencies = new HashMap<>();
+		this.oslModules = new HashMap<>();
+	}
 
 	public static final PomParser intermediaryParser(int generation) {
 		return generation == 1
-			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml")
-			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
+				? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml")
+				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
 	}
 
 	public static final PomParser featherParser(int generation) {
 		return generation == 1
-			? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml")
-			: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
+				? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml")
+				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
 	}
 
 	public static final Map<String, PomParser> getOslModulePomParsers(List<MavenVersion> osl) {
@@ -100,24 +104,23 @@ public class VersionDatabase {
 			URL url = new URL(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl");
 
 			try (InputStreamReader input = new InputStreamReader(url.openStream())) {
-				JsonElement json = JsonParser.parseReader(input);
+				JsonNode json = OrnitheMeta.MAPPER.readTree(input);
 
-				if (json.isJsonObject()) {
-					JsonObject obj = json.getAsJsonObject();
-					JsonElement files = obj.get("files");
+				if (json.isObject()) {
+					ObjectNode obj = (ObjectNode) json;
+					JsonNode files = obj.get("files");
 
-					if (files != null && files.isJsonArray()) {
-						JsonArray arr = files.getAsJsonArray();
+					if (files != null && files.isArray()) {
+						ArrayNode arr = (ArrayNode) files;
 
-						for (JsonElement file : arr) {
-							if (file.isJsonObject()) {
-								JsonObject f = file.getAsJsonObject();
-								JsonElement name = f.get("name");
-								JsonElement type = f.get("type");
+						for (JsonNode file : arr) {
+							if (file.isObject()) {
+								JsonNode name = file.get("name");
+								JsonNode type = file.get("type");
 
-								if (name != null && name.isJsonPrimitive() && type != null && type.isJsonPrimitive()) {
-									if (!versions.contains(name.getAsString()) && "DIRECTORY".equals(type.getAsString())) {
-										parsers.put(name.getAsString(), new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/" + name.getAsString() + "/maven-metadata.xml"));
+								if (name != null && name.isValueNode() && type != null && type.isValueNode()) {
+									if (!versions.contains(name.asText()) && "DIRECTORY".equals(type.asText())) {
+										parsers.put(name.asText(), new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/" + name.asText() + "/maven-metadata.xml"));
 									}
 								}
 							}
@@ -129,30 +132,6 @@ public class VersionDatabase {
 		}
 
 		return parsers;
-	}
-
-	private final Int2ObjectMap<List<BaseVersion>> game;
-	private final Int2ObjectMap<List<MavenVersion>> intermediary;
-	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
-	private final Map<LoaderType, List<MavenBuildVersion>> loader;
-	private final Map<String, List<MavenVersion>> oslDependencies;
-	private final Map<String, List<MavenVersion>> oslModules;
-
-	public final VersionManifest manifest = new VersionManifest();
-
-	public List<MavenBuildGameVersion> raven;
-	public List<MavenBuildGameVersion> sparrow;
-	public List<MavenBuildGameVersion> nests;
-	public List<MavenUrlVersion> installer;
-	public List<MavenVersion> osl;
-
-	private VersionDatabase() {
-		this.game = new Int2ObjectOpenHashMap<>();
-		this.intermediary = new Int2ObjectOpenHashMap<>();
-		this.feather = new Int2ObjectOpenHashMap<>();
-		this.loader = new EnumMap<>(LoaderType.class);
-		this.oslDependencies = new HashMap<>();
-		this.oslModules = new HashMap<>();
 	}
 
 	public static VersionDatabase generate() throws IOException, XMLStreamException {
@@ -193,10 +172,14 @@ public class VersionDatabase {
 			PomParser parser = e.getValue();
 
 			database.oslModules.put(module, parser.getMeta(MavenVersion::new, "net.ornithemc.osl:" + module + ":"));
-		};
+		}
 		database.loadMcData();
 		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
 		return database;
+	}
+
+	private static boolean isPublicLoaderVersion(BaseVersion version) {
+		return true;
 	}
 
 	private void loadMcData() throws IOException {
@@ -204,7 +187,7 @@ public class VersionDatabase {
 			throw new RuntimeException("Mappings are empty");
 		}
 
-		Int2ObjectMap<MinecraftLauncherMeta> launcherMetas = new Int2ObjectOpenHashMap<>();;
+		Int2ObjectMap<MinecraftLauncherMeta> launcherMetas = new Int2ObjectOpenHashMap<>();
 
 		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
 			final int gen = generation;
@@ -231,7 +214,7 @@ public class VersionDatabase {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
 				value.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
-				value.forEach(version -> version.setStable(true));				
+				value.forEach(version -> version.setStable(true));
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
@@ -314,10 +297,6 @@ public class VersionDatabase {
 
 	public List<MavenVersion> getOslModule(String module) {
 		return oslModules.get(module);
-	}
-	
-	private static boolean isPublicLoaderVersion(BaseVersion version) {
-		return true;
 	}
 
 	public List<MavenBuildVersion> getAllLoader(LoaderType type) {

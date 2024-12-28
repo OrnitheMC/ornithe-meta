@@ -18,14 +18,13 @@
 
 package net.ornithemc.meta.utils;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabaseOld;
-import net.ornithemc.meta.web.WebServer;
 import net.ornithemc.meta.web.models.LoaderInfoBase;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
@@ -34,14 +33,14 @@ public class LoaderMetaV2 {
 
 	public static final File BASE_DIR = new File("metadata");
 
-	public static JsonObject getMeta(LoaderInfoBase loaderInfo){
+	public static JsonNode getMeta(LoaderInfoBase loaderInfo) {
 		String loaderMaven = loaderInfo.getLoader().getMaven();
 		String[] split = loaderMaven.split(":");
-		String path = String.format("%s/%s/%s", split[0].replaceAll("\\.","/"), split[1], split[2]);
+		String path = String.format("%s/%s/%s", split[0].replaceAll("\\.", "/"), split[1], split[2]);
 		String filename = String.format("%s-%s.json", split[1], split[2]);
 
 		File launcherMetaFile = new File(BASE_DIR, path + "/" + filename);
-		if(!launcherMetaFile.exists()){
+		if (!launcherMetaFile.exists()) {
 			try {
 				String url = String.format("%s%s/%s", VersionDatabaseOld.ORNITHE_MAVEN_URL, path, filename);
 				System.out.println("Downloading " + url);
@@ -53,12 +52,10 @@ public class LoaderMetaV2 {
 		}
 
 		try {
-			JsonObject jsonObject = WebServer.GSON.fromJson(new FileReader(launcherMetaFile), JsonObject.class);
-			return jsonObject;
-		} catch (FileNotFoundException e) {
+			return OrnitheMeta.MAPPER.readTree(new FileReader(launcherMetaFile));
+		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
-
 }

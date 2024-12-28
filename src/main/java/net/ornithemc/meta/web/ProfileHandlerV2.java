@@ -18,6 +18,14 @@
 
 package net.ornithemc.meta.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.data.VersionDatabaseOld;
+import net.ornithemc.meta.web.models.LoaderInfoV2;
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,14 +39,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import net.ornithemc.meta.data.VersionDatabaseOld;
-import org.apache.commons.io.IOUtils;
-
-import net.ornithemc.meta.web.models.LoaderInfoV2;
 
 public class ProfileHandlerV2 {
 
@@ -77,13 +77,13 @@ public class ProfileHandlerV2 {
 				.thenApply(inputStream -> packageZip(info, inputStream));
 	}
 
-	private static InputStream packageZip(LoaderInfoV2 info, InputStream profileJson)  {
+	private static InputStream packageZip(LoaderInfoV2 info, InputStream profileJson) {
 		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-			try (ZipOutputStream zipStream = new ZipOutputStream(byteArrayOutputStream))  {
+			try (ZipOutputStream zipStream = new ZipOutputStream(byteArrayOutputStream)) {
 				//Write the profile json
 				zipStream.putNextEntry(new ZipEntry(profileName + "/" + profileName + ".json"));
 				IOUtils.copy(profileJson, zipStream);
@@ -102,62 +102,62 @@ public class ProfileHandlerV2 {
 	}
 
 	private static InputStream getProfileJsonStream(LoaderInfoV2 info, String side) {
-		JsonObject jsonObject = buildProfileJson(info, side);
-		return new ByteArrayInputStream(jsonObject.toString().getBytes());
+		JsonNode jsonNode = buildProfileJson(info, side);
+		return new ByteArrayInputStream(jsonNode.toString().getBytes());
 	}
 
 	//This is based of the installer code.
-	private static JsonObject buildProfileJson(LoaderInfoV2 info, String side) {
-		JsonObject launcherMeta = info.getLauncherMeta();
+	private static JsonNode buildProfileJson(LoaderInfoV2 info, String side) {
+		JsonNode launcherMeta = info.getLauncherMeta();
 
 		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
 
-		JsonObject librariesObject = launcherMeta.get("libraries").getAsJsonObject();
+		JsonNode librariesNode = launcherMeta.get("libraries");
 		// Build the libraries array with the existing libs + loader and calamus
-		JsonArray libraries = (JsonArray) librariesObject.get("common");
+		ArrayNode libraries = (ArrayNode) librariesNode.get("common");
 		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
 		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
 
-		if (librariesObject.has(side)) {
-			libraries.addAll(librariesObject.get(side).getAsJsonArray());
+		if (librariesNode.has(side)) {
+			libraries.addAll((ArrayNode) librariesNode.get(side));
 		}
 
 		String currentTime = ISO_8601.format(new Date());
 
-		JsonObject profile = new JsonObject();
-		profile.addProperty("id", profileName);
-		profile.addProperty("inheritsFrom", info.getCalamus().getVersion());
-		profile.addProperty("releaseTime", currentTime);
-		profile.addProperty("time", currentTime);
-		profile.addProperty("type", "release");
+		ObjectNode profile = OrnitheMeta.MAPPER.createObjectNode();
+		profile.put("id", profileName);
+		profile.put("inheritsFrom", info.getCalamus().getVersion());
+		profile.put("releaseTime", currentTime);
+		profile.put("time", currentTime);
+		profile.put("type", "release");
 
-		JsonElement mainClassElement = launcherMeta.get("mainClass");
+		JsonNode mainClassElement = launcherMeta.get("mainClass");
 		String mainClass;
 
-		if (mainClassElement.isJsonObject()) {
-			mainClass = mainClassElement.getAsJsonObject().get(side).getAsString();
+		if (mainClassElement.isObject()) {
+			mainClass = mainClassElement.get(side).asText();
 		} else {
-			mainClass = mainClassElement.getAsString();
+			mainClass = mainClassElement.asText();
 		}
 
-		profile.addProperty("mainClass", mainClass);
+		profile.put("mainClass", mainClass);
 
-		JsonObject arguments = new JsonObject();
+		ObjectNode arguments = OrnitheMeta.MAPPER.createObjectNode();
 
 		// I believe this is required to stop the launcher from complaining
-		arguments.add("game", new JsonArray());
+		arguments.putArray("game");
 
-		profile.add("arguments", arguments);
+		profile.set("arguments", arguments);
 
-		profile.add("libraries", libraries);
+		profile.putArray("libraries").addAll(libraries);
 
 		return profile;
 	}
 
-	private static JsonObject getLibrary(String mavenPath, String url) {
-		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("name", mavenPath);
-		jsonObject.addProperty("url", url);
-		return jsonObject;
+	private static JsonNode getLibrary(String mavenPath, String url) {
+		ObjectNode objectNode = OrnitheMeta.MAPPER.createObjectNode();
+		objectNode.put("name", mavenPath);
+		objectNode.put("url", url);
+		return objectNode;
 	}
 }
