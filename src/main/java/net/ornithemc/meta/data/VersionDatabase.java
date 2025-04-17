@@ -154,7 +154,8 @@ public class VersionDatabase {
 		}));
 		database.loader.put(LoaderType.QUILT, QUILT_LOADER_PARSER.getMeta(MavenBuildVersion::new, "org.quiltmc:quilt-loader:", list -> {
 			for (BaseVersion version : list) {
-				if (isPublicLoaderVersion(version)) {
+				// Quilt publishes beta versions of their loader, filter those out
+				if (isPublicLoaderVersion(version) && !version.getVersion().contains("-")) {
 					version.setStable(true);
 					break;
 				}
