@@ -52,11 +52,7 @@ public class OrnitheMeta
 			databaseOld = VersionDatabaseOld.generate();
 			database = VersionDatabase.generate();
 		} catch (IOException | XMLStreamException e) {
-			if(databaseOld == null || database == null){
-				throw new RuntimeException(e);
-			} else {
-				e.printStackTrace();
-			}
+			e.printStackTrace();
 		}
 	}
 
