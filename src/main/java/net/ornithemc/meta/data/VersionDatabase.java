@@ -18,6 +18,7 @@
 
 package net.ornithemc.meta.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,6 +40,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties({"manifest"})
 public class VersionDatabase {
 
 	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
