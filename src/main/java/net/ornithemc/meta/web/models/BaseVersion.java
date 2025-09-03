@@ -20,10 +20,13 @@ package net.ornithemc.meta.web.models;
 
 import java.util.function.Predicate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class BaseVersion implements Predicate<String> {
 
 	String version;
-	transient String versionNoSide;
+	@JsonIgnore
+	String versionNoSide;
 	boolean stable = false;
 
 	public BaseVersion(String version, boolean stable) {
