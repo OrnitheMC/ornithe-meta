@@ -24,7 +24,9 @@ repositories {
 dependencies {
 	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.18.2'
 	implementation group: 'io.javalin', name: 'javalin', version: '3.13.13'
-	implementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.32'
+    implementation group: 'org.tinylog', name: 'slf4j-tinylog', version: '2.7.0'
+    implementation group: 'org.tinylog', name: 'tinylog-api', version: '2.7.0'
+    implementation group: 'org.tinylog', name: 'tinylog-impl', version: '2.7.0'
 	implementation group: 'commons-io', name: 'commons-io', version: '2.14.0'
 	implementation group: 'com.vdurmont', name: 'semver4j', version: '3.1.0'
 	implementation group: 'it.unimi.dsi', name: 'fastutil', version: '8.5.13'
