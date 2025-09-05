@@ -23,8 +23,9 @@ import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
 import net.ornithemc.meta.web.models.BaseVersion;
-import net.ornithemc.meta.web.models.LibraryV3;
+import net.ornithemc.meta.web.models.Library;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
 import net.ornithemc.meta.web.models.MavenBuildGameVersion;
@@ -72,7 +73,7 @@ public class EndpointsV3 {
 		jsonGet("/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
 		jsonGet("/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
 
-		jsonGetF("/libraries/:game_version", generation -> context -> withLimitSkip(context, getLibraryUpgrades(context, generation)));
+		jsonGetF("/libraries/:game_version", generation -> context -> withLimitSkip(context, getLibraries(context, generation)));
 
 		jsonGet("/fabric-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.FABRIC)));
 		jsonGetF("/fabric-loader/:game_version", generation -> context -> withLimitSkip(context, getLoaderInfoAll(context, generation, LoaderType.FABRIC)));
@@ -154,7 +155,7 @@ public class EndpointsV3 {
 		return versionList.stream().filter(t -> t.test(context.pathParam("game_version"))).collect(Collectors.toList());
 	}
 
-	private static List<LibraryV3> getLibraryUpgrades(Context context, int generation) {
+	private static List<Library> getLibraries(Context context, int generation) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
@@ -163,6 +164,7 @@ public class EndpointsV3 {
 
 		return OrnitheMeta.database.libraryUpgrades.stream()
 			.filter(l -> l.test(generation, gameVersion))
+			.map(LibraryUpgrade::asLibrary)
 			.collect(Collectors.toList());
 	}
 
@@ -285,9 +287,9 @@ public class EndpointsV3 {
 					}
 
 					try {
-						Semver v = OrnitheMeta.database.manifest.get(gameVersion);
-						Semver vmin = OrnitheMeta.database.manifest.get(minGameVersion);
-						Semver vmax = OrnitheMeta.database.manifest.get(maxGameVersion);
+						Semver v = OrnitheMeta.database.manifest.getVersion(gameVersion);
+						Semver vmin = OrnitheMeta.database.manifest.getVersion(minGameVersion);
+						Semver vmax = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
 
 						return v.compareTo(vmin) >= 0 && v.compareTo(vmax) <= 0;
 					} catch (NoSuchElementException e) {

@@ -30,6 +30,7 @@ import net.ornithemc.meta.utils.PomDependencyParser;
 import net.ornithemc.meta.utils.PomParser;
 import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.LibraryUpgradesV3;
+import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
 import net.ornithemc.meta.web.models.*;
 
 import javax.xml.stream.XMLStreamException;
@@ -74,7 +75,7 @@ public class VersionDatabase {
 	public List<MavenBuildGameVersion> nests;
 	public List<MavenUrlVersion> installer;
 	public List<MavenVersion> osl;
-	public List<LibraryV3> libraryUpgrades;
+	public List<LibraryUpgrade> libraryUpgrades;
 	private VersionDatabase() {
 		this.game = new Int2ObjectOpenHashMap<>();
 		this.intermediary = new Int2ObjectOpenHashMap<>();

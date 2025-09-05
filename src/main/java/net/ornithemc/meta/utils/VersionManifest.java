@@ -39,7 +39,7 @@ public class VersionManifest {
 		this.versions = new HashMap<>();
 	}
 
-	public Semver get(String id) {
+	public Semver getVersion(String id) {
 		return versions.computeIfAbsent(id, key -> {
 			try (InputStreamReader input = new InputStreamReader(new URL(String.format(DETAILS_URL, id)).openStream())) {
 				JsonNode details = OrnitheMeta.MAPPER.readTree(input);

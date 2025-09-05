@@ -18,37 +18,117 @@
 
 package net.ornithemc.meta.web;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.vdurmont.semver4j.Semver;
+
+import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
-import net.ornithemc.meta.web.models.LibraryV3;
+import net.ornithemc.meta.web.models.Library;
 
 public class LibraryUpgradesV3 {
 
-	public static List<LibraryV3> get() {
-		List<LibraryV3> libraries = new ArrayList<>();
+	private static final Path FILE_PATH = Paths.get("library-upgrades-v3.json");
 
-		// the slf4j binding for log4j - this version has been tested to work on 1.6, 1.11, 1.12
-		// lower versions of mc not tested because they did not yet ship log4j to begin with
-		libraries.add(LibraryV3.of("org.slf4j:slf4j-api:2.0.1"));
-		libraries.add(LibraryV3.of("org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0"));
-		libraries.add(LibraryV3.of("org.apache.logging.log4j:log4j-api:2.19.0"));
-		libraries.add(LibraryV3.of("org.apache.logging.log4j:log4j-core:2.19.0"));
-		libraries.add(LibraryV3.of("it.unimi.dsi:fastutil:8.5.9"));
-		libraries.add(LibraryV3.of("com.google.code.gson:gson:2.10"));
+	private static List<LibraryUpgrade> cache;
 
-		// logger-config is needed to make log4j work in versions prior to 13w39a
-		libraries.add(LibraryV3.of("net.ornithemc:logger-config:1.0.0").setUrl(VersionDatabase.ORNITHE_MAVEN_URL).setMaxGameVersion("13w38c"));
-		libraries.add(LibraryV3.of("com.google.guava:guava:14.0").setMaxGameVersion("1.5.2"));
-		libraries.add(LibraryV3.of("commons-codec:commons-codec:1.9").setMaxGameVersion("1.7.5"));
-		libraries.add(LibraryV3.of("org.apache.commons:commons-compress:1.8.1").setMaxGameVersion("1.7.10"));
-		libraries.add(LibraryV3.of("commons-io:commons-io:2.4").setMaxGameVersion("1.5.2"));
-		libraries.add(LibraryV3.of("org.apache.commons:commons-lang3:3.1").setMaxGameVersion("1.5.2"));
-		libraries.add(LibraryV3.of("commons-logging:commons-logging:1.1.3").setMaxGameVersion("1.7.10"));
-		libraries.add(LibraryV3.of("org.apache.httpcomponents:httpcore:4.3.2").setMaxGameVersion("1.7.9"));
-		libraries.add(LibraryV3.of("org.apache.httpcomponents:httpclient:4.3.3").setMaxGameVersion("1.7.9"));
+	public static List<LibraryUpgrade> get() {
+		reload();
+		validate();
 
-		return libraries;
+		return cache;
+	}
+
+	private static void reload() {
+		if (Files.exists(FILE_PATH)) {
+			try (InputStream is = Files.newInputStream(FILE_PATH);) {
+				cache = OrnitheMeta.MAPPER.readValue(is, new TypeReference<List<LibraryUpgrade>>() { });
+			} catch (IOException e) {
+				OrnitheMeta.LOGGER.warn("unable to load library upgrades from file", e);
+			}
+		}
+	}
+
+	private static void validate() {
+		if (cache == null) {
+			throw new RuntimeException("library upgrades v3 could not be read from file: file does not exist or is badly formatted");
+		}
+
+		for (LibraryUpgrade lib : cache) {
+			String name = lib.name;
+			String[] parts = name.split("[:]");
+
+			if (parts.length < 3 || parts.length > 4) {
+				throw new RuntimeException("invalid maven notation for library upgrade: " + name);
+			}
+
+			Integer minGeneration = lib.minIntermediaryGeneration;
+			Integer maxGeneration = lib.maxIntermediaryGeneration;
+
+			if (minGeneration != null && maxGeneration != null && minGeneration > maxGeneration) {
+				throw new RuntimeException("invalid intermediary generation bounds for library upgrade: " + name + " (" + minGeneration + " > " + maxGeneration + ")");
+			}
+
+			String minGameVersion = lib.minGameVersion;
+			String maxGameVersion = lib.maxGameVersion;
+
+			if (minGameVersion != null && maxGameVersion != null) {
+				Semver min = OrnitheMeta.database.manifest.getVersion(minGameVersion);
+				Semver max = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
+
+				if (min.compareTo(max) > 0) {
+					throw new RuntimeException("invalid game version bounds for library upgrade: " + name + " (" + minGameVersion + " > " + maxGameVersion + ")");
+				}
+			}
+		}
+	}
+
+	public static class LibraryUpgrade {
+
+		public String name;
+		public String url = VersionDatabase.MINECRAFT_LIBRARIES_URL;
+
+		public Integer minIntermediaryGeneration;
+		public Integer maxIntermediaryGeneration;
+		public String minGameVersion;
+		public String maxGameVersion;
+
+		public boolean test(int generation, String gameVersion) {
+			if (this.minIntermediaryGeneration != null && generation < this.minIntermediaryGeneration) {
+				return false;
+			}
+			if (this.maxIntermediaryGeneration != null && generation > this.maxIntermediaryGeneration) {
+				return false;
+			}
+
+			Semver v = OrnitheMeta.database.manifest.getVersion(gameVersion);
+
+			if (this.minGameVersion != null) {
+				Semver vmin = OrnitheMeta.database.manifest.getVersion(this.minGameVersion);
+
+				if (v.compareTo(vmin) < 0) {
+					return false;
+				}
+			}
+			if (this.maxGameVersion != null) {
+				Semver vmax = OrnitheMeta.database.manifest.getVersion(this.maxGameVersion);
+
+				if (v.compareTo(vmax) > 0) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		public Library asLibrary() {
+			return new Library(this.name, this.url);
+		}
 	}
 }
