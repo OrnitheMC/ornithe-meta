@@ -18,6 +18,7 @@
 
 package net.ornithemc.meta.data;
 
+import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.PomParser;
 import net.ornithemc.meta.web.models.BaseVersion;
@@ -63,7 +64,7 @@ public class VersionDatabaseOld {
 		});
 		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer-old:");
 		database.loadMcData();
-		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
+		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
 		return database;
 	}
 
@@ -88,7 +89,7 @@ public class VersionDatabaseOld {
 			}
 
 			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
-				System.out.println("Removing " + o.getVersion() + " as it is not match an mc version (v2)");
+				OrnitheMeta.LOGGER.info("Removing {} as it is not match an mc version (v2)", o.getVersion());
 				return true;
 			}
 			return false;

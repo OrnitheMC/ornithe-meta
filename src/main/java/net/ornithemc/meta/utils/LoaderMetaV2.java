@@ -43,10 +43,10 @@ public class LoaderMetaV2 {
 		if (!launcherMetaFile.exists()) {
 			try {
 				String url = String.format("%s%s/%s", VersionDatabaseOld.ORNITHE_MAVEN_URL, path, filename);
-				System.out.println("Downloading " + url);
+				OrnitheMeta.LOGGER.info("Downloading {}", url);
 				FileUtils.copyURLToFile(new URL(url), launcherMetaFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				OrnitheMeta.LOGGER.error(e);
 				return null;
 			}
 		}
@@ -54,7 +54,7 @@ public class LoaderMetaV2 {
 		try {
 			return OrnitheMeta.MAPPER.readTree(new FileReader(launcherMetaFile));
 		} catch (IOException e) {
-			e.printStackTrace();
+			OrnitheMeta.LOGGER.error(e);
 			return null;
 		}
 	}

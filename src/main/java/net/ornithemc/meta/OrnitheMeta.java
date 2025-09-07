@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.data.VersionDatabaseOld;
 import net.ornithemc.meta.web.WebServer;
+import org.tinylog.Logger;
+import org.tinylog.TaggedLogger;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
@@ -36,8 +38,10 @@ public class OrnitheMeta
 	public static volatile VersionDatabaseOld databaseOld;
 	public static volatile VersionDatabase database;
 	public static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    public static final TaggedLogger LOGGER = Logger.tag("ornithe-meta");
 
 	public static void main(String[] args) {
+        LOGGER.warn("Starting up!");
 
 		update();
 
@@ -52,7 +56,7 @@ public class OrnitheMeta
 			databaseOld = VersionDatabaseOld.generate();
 			database = VersionDatabase.generate();
 		} catch (IOException | XMLStreamException e) {
-			e.printStackTrace();
+			Logger.error(e);
 		}
 	}
 

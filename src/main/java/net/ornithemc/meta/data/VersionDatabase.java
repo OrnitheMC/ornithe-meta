@@ -177,7 +177,7 @@ public class VersionDatabase {
 			database.oslModules.put(module, parser.getMeta(MavenVersion::new, "net.ornithemc.osl:" + module + ":"));
 		}
 		database.loadMcData();
-		System.out.println("DB update took " + (System.currentTimeMillis() - start) + "ms");
+		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
 		return database;
 	}
 
@@ -205,7 +205,7 @@ public class VersionDatabase {
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
 					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
-						System.out.println("Removing " + o.getVersion() + " from intermediary v3" + (gen < 1 ? "" : " gen" + gen) + " as it does not match a mc version");
+						OrnitheMeta.LOGGER.info("Removing {} from intermediary v3{} as it does not match a mc version", o.getVersion(), (gen < 1 ? "" : " gen" + gen));
 						return true;
 					}
 					return false;
@@ -222,7 +222,7 @@ public class VersionDatabase {
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
 					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
-						System.out.println("Removing " + o.getGameVersion() + " from v3 feather" + " gen" + gen + " as it does not match a mc version");
+						OrnitheMeta.LOGGER.info("Removing {} from v3 feather gen{} as it does not match a mc version", o.getGameVersion(), gen);
 						return true;
 					}
 					return false;
@@ -248,7 +248,7 @@ public class VersionDatabase {
 						return false;
 					}
 				}
-				System.out.println("Removing " + o.getGameVersion() + " from " + src + " as it does not match a mc version");
+				OrnitheMeta.LOGGER.info("Removing {} from {} as it does not match a mc version", o.getGameVersion(), src);
 				return true;
 			};
 		};
