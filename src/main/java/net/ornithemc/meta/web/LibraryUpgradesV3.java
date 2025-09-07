@@ -82,6 +82,13 @@ public class LibraryUpgradesV3 {
 				Semver min = OrnitheMeta.database.manifest.getVersion(minGameVersion);
 				Semver max = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
 
+				if (min == null) {
+					throw new RuntimeException("unknown minimum game version for library upgrade: " + name + " (" + minGameVersion + ")");
+				}
+				if (max == null) {
+					throw new RuntimeException("unknown maximum game version for library upgrade: " + name + " (" + maxGameVersion + ")");
+				}
+
 				if (min.compareTo(max) > 0) {
 					throw new RuntimeException("invalid game version bounds for library upgrade: " + name + " (" + minGameVersion + " > " + maxGameVersion + ")");
 				}

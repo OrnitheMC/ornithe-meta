@@ -161,6 +161,11 @@ public class EndpointsV3 {
 		}
 
 		String gameVersion = context.pathParam("game_version");
+		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+
+		if (version == null) {
+			return null;
+		}
 
 		return OrnitheMeta.database.libraryUpgrades.stream()
 			.filter(l -> l.test(generation, gameVersion))
@@ -254,6 +259,12 @@ public class EndpointsV3 {
 
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
+		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+
+		if (version == null) {
+			return null;
+		}
+
 		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(module);
 
 		if (context.pathParamMap().containsKey("base_version")) {
@@ -265,11 +276,11 @@ public class EndpointsV3 {
 		}
 
 		versions = versions.stream()
-				.filter(version -> {
+				.filter(v -> {
 					String minGameVersion = null;
 					String maxGameVersion = null;
 
-					String buildVersion = version.getVersion();
+					String buildVersion = v.getVersion();
 					String[] parts = buildVersion.split("mc");
 
 					if (parts.length == 2) { // old format: <base version>+mc<min mc version>#<max mc version>
@@ -287,11 +298,10 @@ public class EndpointsV3 {
 					}
 
 					try {
-						Semver v = OrnitheMeta.database.manifest.getVersion(gameVersion);
 						Semver vmin = OrnitheMeta.database.manifest.getVersion(minGameVersion);
 						Semver vmax = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
 
-						return v.compareTo(vmin) >= 0 && v.compareTo(vmax) <= 0;
+						return version.compareTo(vmin) >= 0 && version.compareTo(vmax) <= 0;
 					} catch (NoSuchElementException e) {
 						return false;
 					}

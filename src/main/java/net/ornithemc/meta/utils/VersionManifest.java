@@ -27,7 +27,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 public class VersionManifest {
 
@@ -47,7 +46,7 @@ public class VersionManifest {
 
 				return new Semver(normalized);
 			} catch (IOException e) {
-				throw new NoSuchElementException("no version with id " + id + " exists!");
+				return null;
 			}
 		});
 	}
