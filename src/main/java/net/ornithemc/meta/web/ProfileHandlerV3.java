@@ -167,9 +167,15 @@ public class ProfileHandlerV3 {
 		}
 
 		ObjectNode arguments = OrnitheMeta.MAPPER.createObjectNode();
-
+		ArrayNode jvmArgs = arguments.putArray("jvm");
 		// I believe this is required to stop the launcher from complaining
 		arguments.putArray("game");
+
+		if (generation >= 2) {
+			jvmArgs.add("-Dfabric.fixPackageAccess");
+		}
+		jvmArgs.add("-Dfabric.gameVersion");
+		jvmArgs.add(info.getIntermediary().getVersion());
 
 		profile.set("arguments", arguments);
 
