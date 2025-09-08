@@ -27,7 +27,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 public class VersionManifest {
 
@@ -39,7 +38,7 @@ public class VersionManifest {
 		this.versions = new HashMap<>();
 	}
 
-	public Semver get(String id) {
+	public Semver getVersion(String id) {
 		return versions.computeIfAbsent(id, key -> {
 			try (InputStreamReader input = new InputStreamReader(new URL(String.format(DETAILS_URL, id)).openStream())) {
 				JsonNode details = OrnitheMeta.MAPPER.readTree(input);
@@ -47,7 +46,7 @@ public class VersionManifest {
 
 				return new Semver(normalized);
 			} catch (IOException e) {
-				throw new NoSuchElementException("no version with id " + id + " exists!");
+				return null;
 			}
 		});
 	}

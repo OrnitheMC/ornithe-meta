@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
 import org.apache.commons.io.IOUtils;
@@ -130,7 +131,15 @@ public class ProfileHandlerV3 {
 				info.getGame(side),
 				generation);
 
-		ArrayNode libraries = ProfileLibraryManager.getLibraries(info, side);
+		JsonNode librariesNode = launcherMeta.get("libraries");
+		// Build the libraries array with the existing libs + loader and intermediary
+		ArrayNode libraries = (ArrayNode) librariesNode.get("common");
+		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
+
+		if (librariesNode.has(side)) {
+			libraries.addAll((ArrayNode) librariesNode.get(side));
+		}
 
 		String currentTime = ISO_8601.format(new Date());
 
@@ -167,5 +176,12 @@ public class ProfileHandlerV3 {
 		profile.put("libraries", libraries);
 
 		return profile;
+	}
+
+	private static JsonNode getLibrary(String mavenPath, String url) {
+		ObjectNode objectNode = OrnitheMeta.MAPPER.createObjectNode();
+		objectNode.put("name", mavenPath);
+		objectNode.put("url", url);
+		return objectNode;
 	}
 }
