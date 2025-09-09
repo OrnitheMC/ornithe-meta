@@ -75,11 +75,11 @@ public class EndpointsV3 {
 
 		jsonGetF("/libraries/:game_version", generation -> context -> withLimitSkip(context, getLibraries(context, generation)));
 
-		jsonGet("/fabric-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.FABRIC)));
+		jsonGetF("/fabric-loader", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getLoader(generation, LoaderType.FABRIC)));
 		jsonGetF("/fabric-loader/:game_version", generation -> context -> withLimitSkip(context, getLoaderInfoAll(context, generation, LoaderType.FABRIC)));
 		jsonGetF("/fabric-loader/:game_version/:loader_version", generation -> context -> getLoaderInfo(context, generation, LoaderType.FABRIC));
 
-		jsonGet("/quilt-loader", context -> withLimitSkip(context, OrnitheMeta.database.getLoader(LoaderType.QUILT)));
+		jsonGetF("/quilt-loader", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getLoader(generation, LoaderType.QUILT)));
 		jsonGetF("/quilt-loader/:game_version", generation -> context -> withLimitSkip(context, getLoaderInfoAll(context, generation, LoaderType.QUILT)));
 		jsonGetF("/quilt-loader/:game_version/:loader_version", generation -> context -> getLoaderInfo(context, generation, LoaderType.QUILT));
 
@@ -184,7 +184,7 @@ public class EndpointsV3 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader(type).stream()
+		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader(generation, type).stream()
 			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
 			.findFirst().orElse(null);
 
@@ -219,7 +219,7 @@ public class EndpointsV3 {
 
 		List<LoaderInfoV3> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader(type)){
+		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader(generation, type)){
 			infoList.add(new LoaderInfoV3(type, loader, mappings).populateMeta());
 		}
 		return infoList;
