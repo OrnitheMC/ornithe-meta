@@ -26,8 +26,6 @@ import net.ornithemc.meta.web.WebServer;
 import org.tinylog.Logger;
 import org.tinylog.TaggedLogger;
 
-import javax.xml.stream.XMLStreamException;
-import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +53,7 @@ public class OrnitheMeta
 		try {
 			databaseOld = VersionDatabaseOld.generate();
 			database = VersionDatabase.generate();
-		} catch (IOException | XMLStreamException e) {
+		} catch (Exception e) {
 			Logger.error(e);
 		}
 	}

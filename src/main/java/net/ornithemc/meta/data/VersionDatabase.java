@@ -33,7 +33,6 @@ import net.ornithemc.meta.web.LibraryUpgradesV3;
 import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
 import net.ornithemc.meta.web.models.*;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -52,9 +51,6 @@ public class VersionDatabase {
 	public static final String ORNITHE_MAVEN_VERSIONS_URL = "https://maven.ornithemc.net/api/maven/versions/releases/";
 	public static final String MINECRAFT_LIBRARIES_URL = "https://libraries.minecraft.net/";
 
-	public static final int LATEST_GENERATION = 2;
-	public static final int LATEST_STABLE_GENERATION = 1;
-
 	public static final PomParser RAVEN_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/raven/maven-metadata.xml");
 	public static final PomParser SPARROW_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/sparrow/maven-metadata.xml");
 	public static final PomParser NESTS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/nests/maven-metadata.xml");
@@ -63,6 +59,9 @@ public class VersionDatabase {
 	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer/maven-metadata.xml");
 	public static final PomParser OSL_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl/maven-metadata.xml");
 	public static final PomDependencyParser OSL_DEPENDENCY_PARSER = new PomDependencyParser(ORNITHE_MAVEN_URL + "net/ornithemc/osl");
+
+	public static ConfigV3 config;
+
 	public final VersionManifest manifest = new VersionManifest();
 	private final Int2ObjectMap<List<BaseVersion>> game;
 	private final Int2ObjectMap<List<MavenVersion>> intermediary;
@@ -88,13 +87,13 @@ public class VersionDatabase {
 	public static final PomParser intermediaryParser(int generation) {
 		return generation == 1
 				? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary/maven-metadata.xml")
-				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
+				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus-intermediary-gen" + generation + "/maven-metadata.xml", generation <= config.stableIntermediaryGeneration);
 	}
 
 	public static final PomParser featherParser(int generation) {
 		return generation == 1
 				? new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather/maven-metadata.xml")
-				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml", generation <= LATEST_STABLE_GENERATION);
+				: new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/feather-gen" + generation + "/maven-metadata.xml", generation <= config.stableIntermediaryGeneration);
 	}
 
 	public static final Map<String, PomParser> getOslModulePomParsers(List<MavenVersion> osl) {
@@ -139,10 +138,11 @@ public class VersionDatabase {
 		return parsers;
 	}
 
-	public static VersionDatabase generate() throws IOException, XMLStreamException {
+	public static VersionDatabase generate() throws Exception {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
-		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+		config = ConfigV3.load();
+		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			database.intermediary.put(generation, intermediaryParser(generation).getMeta(MavenVersion::new, generation == 1 ? "net.ornithemc:calamus-intermediary:" : String.format("net.ornithemc:calamus-intermediary-gen%d:", generation)));
 			database.feather.put(generation, featherParser(generation).getMeta(MavenBuildGameVersion::new, generation == 1 ? "net.ornithemc:feather:" : String.format("net.ornithemc:feather-gen%d:", generation)));
 		}
@@ -196,7 +196,7 @@ public class VersionDatabase {
 
 		Int2ObjectMap<MinecraftLauncherMeta> launcherMetas = new Int2ObjectOpenHashMap<>();
 
-		for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			final int gen = generation;
 			final MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getSortedMeta(gen);
 			launcherMetas.put(generation, launcherMeta);
@@ -247,7 +247,7 @@ public class VersionDatabase {
 
 		Function<String, Predicate<MavenBuildGameVersion>> p = src -> {
 			return o -> {
-				for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+				for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 					if (launcherMetas.get(generation).getVersions().stream().anyMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
 						return false;
 					}
@@ -259,7 +259,7 @@ public class VersionDatabase {
 		Comparator<MavenBuildGameVersion> c = (v1, v2) -> {
 			int i1 = Integer.MAX_VALUE;
 			int i2 = Integer.MAX_VALUE;
-			for (int generation = 1; generation <= LATEST_GENERATION; generation++) {
+			for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 				MinecraftLauncherMeta launcherMeta = launcherMetas.get(generation);
 				i1 = Math.min(i1, launcherMeta.getIndex(v1.getVersionNoSide()));
 				i2 = Math.min(i2, launcherMeta.getIndex(v2.getVersionNoSide()));

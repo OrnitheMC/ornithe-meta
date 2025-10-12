@@ -102,31 +102,31 @@ public class EndpointsV3 {
 	}
 
 	private static <T> void jsonGetS(String path, Function<Integer, Supplier<T>> supplier) {
-		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
 			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, supplier.apply(generation));
 
-			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
 				WebServer.javalin.get("/v3/versions" + path, handler);
 			}
 		}
 	}
 
 	private static <T> void jsonGetF(String path, Function<Integer, Function<Context, T>> function) {
-		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
 			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, function.apply(generation));
 
-			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
 				WebServer.javalin.get("/v3/versions" + path, handler);
 			}
 		}
 	}
 
 	private static <T> void jsonGetH(String path, Function<Integer, Handler> function) {
-		for (int generation = 1; generation <= VersionDatabase.LATEST_GENERATION; generation++) {
+		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
 			Handler handler = function.apply(generation);
 			WebServer.javalin.get("/v3/versions/gen" + generation + path, handler);
 
-			if (generation == VersionDatabase.LATEST_STABLE_GENERATION) {
+			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
 				WebServer.javalin.get("/v3/versions" + path, handler);
 			}
 		}
