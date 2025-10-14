@@ -23,6 +23,7 @@ import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.Library;
@@ -85,10 +86,10 @@ public class EndpointsV3 {
 
 		jsonGet("/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
-		jsonGet("/osl", context -> withLimitSkip(context, OrnitheMeta.database.osl));
-		jsonGet("/osl/:version", context -> withLimitSkip(context, getOslDependencyInfo(context)));
-		jsonGet("/osl/:module/:game_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
-		jsonGet("/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
+		jsonGetF("/osl", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getOsl(generation)));
+		jsonGetF("/osl/:version", generation -> context -> withLimitSkip(context, getOslDependencyInfo(context, generation)));
+		jsonGetF("/osl/:module/:game_version", generation -> context -> withLimitSkip(context, getOslModuleInfo(context, generation)));
+		jsonGetF("/osl/:module/:game_version/:base_version", generation -> context -> withLimitSkip(context, getOslModuleInfo(context, generation)));
 
 		ProfileHandlerV3.setup();
 	}
@@ -161,7 +162,7 @@ public class EndpointsV3 {
 		}
 
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+		Semver version = OrnitheMeta.database.getManifest(generation).getVersion(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -238,18 +239,18 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	private static List<?> getOslDependencyInfo(Context context) {
+	private static List<?> getOslDependencyInfo(Context context, int generation) {
 		if (!context.pathParamMap().containsKey("version")) {
 			return null;
 		}
 
 		String version = context.pathParam("version");
-		List<MavenVersion> versions = OrnitheMeta.database.getOslDependencies(version);
+		List<MavenVersion> versions = OrnitheMeta.database.getOslDependencies(generation, version);
 
 		return versions;
 	}
 
-	private static List<?> getOslModuleInfo(Context context) {
+	private static List<?> getOslModuleInfo(Context context, int generation) {
 		if (!context.pathParamMap().containsKey("module")) {
 			return null;
 		}
@@ -257,15 +258,17 @@ public class EndpointsV3 {
 			return null;
 		}
 
+		VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+		Semver version = manifest.getVersion(gameVersion);
 
 		if (version == null) {
 			return null;
 		}
 
-		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(module);
+		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(generation, module);
 
 		if (context.pathParamMap().containsKey("base_version")) {
 			String baseVersion = context.pathParam("base_version");
@@ -298,8 +301,8 @@ public class EndpointsV3 {
 					}
 
 					try {
-						Semver vmin = OrnitheMeta.database.manifest.getVersion(minGameVersion);
-						Semver vmax = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
+						Semver vmin = manifest.getVersion(minGameVersion);
+						Semver vmax = manifest.getVersion(maxGameVersion);
 
 						return version.compareTo(vmin) >= 0 && version.compareTo(vmax) <= 0;
 					} catch (NoSuchElementException e) {

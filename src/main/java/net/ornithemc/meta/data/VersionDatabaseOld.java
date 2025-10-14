@@ -20,7 +20,7 @@ package net.ornithemc.meta.data;
 
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.utils.MinecraftLauncherMeta;
-import net.ornithemc.meta.utils.PomParser;
+import net.ornithemc.meta.utils.MavenMetadataParser;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenUrlVersion;
@@ -38,9 +38,9 @@ public class VersionDatabaseOld {
 
 	public static final String ORNITHE_MAVEN_URL = "https://maven.ornithemc.net/releases/";
 
-	public static final PomParser CALAMUS_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/calamus/maven-metadata.xml");
-	public static final PomParser LOADER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-loader/maven-metadata.xml");
-	public static final PomParser INSTALLER_PARSER = new PomParser(ORNITHE_MAVEN_URL + "net/ornithemc/ornithe-installer-old/maven-metadata.xml");
+	public static final MavenMetadataParser CALAMUS_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "calamus");
+	public static final MavenMetadataParser LOADER_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-loader");
+	public static final MavenMetadataParser INSTALLER_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-installer-old");
 
 	public List<BaseVersion> game;
 	public List<MavenVersion> calamus;
@@ -53,8 +53,8 @@ public class VersionDatabaseOld {
 	public static VersionDatabaseOld generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabaseOld database = new VersionDatabaseOld();
-		database.calamus = CALAMUS_PARSER.getMeta(MavenVersion::new, "net.ornithemc:calamus:");
-		database.loader = LOADER_PARSER.getMeta(MavenBuildVersion::new, "net.ornithemc:ornithe-loader:", list -> {
+		database.calamus = CALAMUS_PARSER.getVersions(MavenVersion::new);
+		database.loader = LOADER_PARSER.getVersions(MavenBuildVersion::new, list -> {
 			for (BaseVersion version : list) {
 				if (isPublicLoaderVersion(version)) {
 					version.setStable(true);
@@ -62,7 +62,7 @@ public class VersionDatabaseOld {
 				}
 			}
 		});
-		database.installer = INSTALLER_PARSER.getMeta(MavenUrlVersion::new, "net.ornithemc:ornithe-installer-old:");
+		database.installer = INSTALLER_PARSER.getVersions(MavenUrlVersion::new);
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
 		return database;
