@@ -31,24 +31,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
-public class PomDependencyParser {
+public class MavenPomParser {
 
-	public String basePath;
+	public String mavenUrl;
+	public String groupId;
+	public String artifactId;
+	public boolean require;
 
-	public PomDependencyParser(String basePath) {
-		this.basePath = basePath;
+	public MavenPomParser(String mavenUrl, String groupId, String artifactId) {
+		this(mavenUrl, groupId, artifactId, true);
 	}
 
-	public <T extends BaseVersion> List<T> getMeta(Function<String, T> factory, String prefix, String version) throws IOException, XMLStreamException {
-		return getMeta(factory, prefix, version, dependency -> true);
+	public MavenPomParser(String mavenUrl, String groupId, String artifactId, boolean require) {
+		this.mavenUrl = mavenUrl;
+		this.groupId = groupId;
+		this.artifactId = artifactId;
+		this.require = require;
 	}
 
-	public <T extends BaseVersion> List<T> getMeta(Function<String, T> factory, String prefix, String version, DependencyFilter<T> filter) throws IOException, XMLStreamException {
-		String path = String.format("%s/%s/%s-%s.pom", basePath, version, prefix, version);
+	public <T extends BaseVersion> List<T> getDependencies(Function<String, T> factory, String version) throws IOException, XMLStreamException {
+		return getDependencies(factory, version, dependency -> true);
+	}
+
+	public <T extends BaseVersion> List<T> getDependencies(Function<String, T> factory, String version, DependencyFilter<T> filter) throws IOException, XMLStreamException {
 		List<T> versions = new ArrayList<>();
 
 		try {
-			URL url = new URL(path);
+			URL url = new URL(mavenUrl + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + version + ".pom");
 			XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(url.openStream());
 			while (reader.hasNext()) {
 				if (reader.next() == XMLStreamConstants.START_ELEMENT && reader.getLocalName().equals("dependency")) {
@@ -89,7 +98,11 @@ public class PomDependencyParser {
 			}
 			reader.close();
 		} catch (IOException e){
-			throw new IOException("Failed to load " + path, e);
+			if (this.require) {
+				throw new IOException("Failed to load " + mavenUrl + " " + groupId + ":" + artifactId + ":" + version, e);
+			}
+
+			versions.clear();
 		}
 
 		return Collections.unmodifiableList(versions);

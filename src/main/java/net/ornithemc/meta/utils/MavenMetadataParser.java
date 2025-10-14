@@ -33,79 +33,69 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-public class PomParser {
+public class MavenMetadataParser {
 
-	public String path;
+	public String mavenUrl;
+	public String groupId;
+	public String artifactId;
 	public boolean require;
 
-	public String latestVersion = "";
-	public List<String> versions = new ArrayList<>();
-
-	public PomParser(String path) {
-		this(path, true);
+	public MavenMetadataParser(String mavenUrl, String groupId, String artifactId) {
+		this(mavenUrl, groupId, artifactId, true);
 	}
 
-	public PomParser(String path, boolean require) {
-		this.path = path;
+	public MavenMetadataParser(String mavenUrl, String groupId, String artifactId, boolean require) {
+		this.mavenUrl = mavenUrl;
+		this.groupId = groupId;
+		this.artifactId = artifactId;
 		this.require = require;
 	}
 
-	private void load() throws IOException, XMLStreamException {
-		versions.clear();
-
-		URL url = new URL(path);
-		XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(url.openStream());
-		while (reader.hasNext()) {
-			if (reader.next() == XMLStreamConstants.START_ELEMENT && reader.getLocalName().equals("version")) {
-				String text = reader.getElementText();
-				versions.add(text);
-			}
-		}
-		reader.close();
-		Collections.reverse(versions);
-		latestVersion = versions.get(0);
-	}
-	
-	public <T extends BaseVersion> List<T> getMeta(Function<String, T> function, String prefix) throws IOException, XMLStreamException {
-		return getMeta(function, prefix, list -> {
+	public <T extends BaseVersion> List<T> getVersions(Function<String, T> function) throws IOException, XMLStreamException {
+		return getVersions(function, list -> {
 			if (!list.isEmpty()) list.get(0).setStable(true);
 		});
 	}
 
-	public <T extends BaseVersion> List<T> getMeta(Function<String, T> function, String prefix, StableVersionIdentifier stableIdentifier) throws IOException, XMLStreamException {
+	public <T extends BaseVersion> List<T> getVersions(Function<String, T> function, StableVersionIdentifier stableIdentifier) throws IOException, XMLStreamException {
+		List<T> versions = new ArrayList<>();
+
 		try {
-			load();
+			URL url = new URL(mavenUrl + groupId.replace('.', '/') + "/" + artifactId + "/maven-metadata.xml");
+			XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(url.openStream());
+			while (reader.hasNext()) {
+				if (reader.next() == XMLStreamConstants.START_ELEMENT && reader.getLocalName().equals("version")) {
+					String version = reader.getElementText();
+					String maven = String.format("%s:%s:%s", groupId, artifactId, version);
+
+					versions.add(function.apply(maven));
+				}
+			}
+			reader.close();
+			Collections.reverse(versions);
 		} catch (IOException e){
 			if (require) {
-				throw new IOException("Failed to load " + path, e);
+				throw new IOException("Failed to load " + mavenUrl + " " + groupId + ":" + artifactId, e);
 			}
+
+			versions.clear();
 		}
 
-		List<T> list = versions.stream()
-				.map((version) -> prefix + version)
-				.map(function)
-				.collect(Collectors.toList());
-
-		Path unstableVersionsPath = Paths.get(prefix
-												.replace(":", "_")
-												.replace(".", "_")
-												.replaceFirst(".$","")
-												+ ".txt");
+		Path unstableVersionsPath = Paths.get(groupId.replace('.', '_') + "_" + artifactId + ".txt");
 
 		if (Files.exists(unstableVersionsPath)) {
 			// Read a file containing a new line separated list of versions that should not be marked as stable.
 			List<String> unstableVersions = Files.readAllLines(unstableVersionsPath);
-			list.stream()
+			versions.stream()
 					.filter(v -> !unstableVersions.contains(v.getVersion()))
 					.findFirst()
 					.ifPresent(v -> v.setStable(true));
 		} else {
-			stableIdentifier.process(list);
+			stableIdentifier.process(versions);
 		}
 
-		return Collections.unmodifiableList(list);
+		return Collections.unmodifiableList(versions);
 	}
 	
 	public interface StableVersionIdentifier {
