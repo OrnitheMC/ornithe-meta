@@ -69,6 +69,7 @@ public class VersionDatabase {
 	private final Map<LoaderType, List<MavenBuildVersion>> loader;
 	private final Map<String, List<MavenVersion>> oslDependencies;
 	private final Map<String, List<MavenVersion>> oslModules;
+	public IntermediaryGenerations intermediaryGenerations;
 	public List<MavenBuildGameVersion> raven;
 	public List<MavenBuildGameVersion> sparrow;
 	public List<MavenBuildGameVersion> nests;
@@ -146,6 +147,7 @@ public class VersionDatabase {
 			database.intermediary.put(generation, intermediaryParser(generation).getMeta(MavenVersion::new, generation == 1 ? "net.ornithemc:calamus-intermediary:" : String.format("net.ornithemc:calamus-intermediary-gen%d:", generation)));
 			database.feather.put(generation, featherParser(generation).getMeta(MavenBuildGameVersion::new, generation == 1 ? "net.ornithemc:feather:" : String.format("net.ornithemc:feather-gen%d:", generation)));
 		}
+		database.intermediaryGenerations = new IntermediaryGenerations(config.latestIntermediaryGeneration, config.stableIntermediaryGeneration);
 		database.raven = RAVEN_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:raven:");
 		database.sparrow = SPARROW_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:sparrow:");
 		database.nests = NESTS_PARSER.getMeta(MavenBuildGameVersion::new, "net.ornithemc:nests:");
