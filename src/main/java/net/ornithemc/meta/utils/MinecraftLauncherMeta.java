@@ -44,10 +44,8 @@ public class MinecraftLauncherMeta {
 		String url;
 		if (generation < 1) {
 			throw new IllegalArgumentException("invalid generation " + generation);
-		} else if (generation == 1) {
-			url = "https://skyrising.github.io/mc-versions/version_manifest.json";
 		} else {
-			url = "https://ornithemc.net/mc-versions/version_manifest.json";
+			url = String.format("https://ornithemc.net/mc-versions/gen%d/version_manifest.json", generation);
 		}
 		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
 		return OrnitheMeta.MAPPER.readValue(json, MinecraftLauncherMeta.class);

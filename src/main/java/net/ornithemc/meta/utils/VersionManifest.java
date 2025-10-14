@@ -30,17 +30,19 @@ import java.util.Map;
 
 public class VersionManifest {
 
-	private static final String DETAILS_URL = "https://skyrising.github.io/mc-versions/version/%s.json";
+	private static final String DETAILS_URL = "https://ornithemc.net/mc-versions/gen%d/version/%s.json";
 
+	private final int generation;
 	private final Map<String, Semver> versions;
 
-	public VersionManifest() {
+	public VersionManifest(int generation) {
+		this.generation = generation;
 		this.versions = new HashMap<>();
 	}
 
 	public Semver getVersion(String id) {
 		return versions.computeIfAbsent(id, key -> {
-			try (InputStreamReader input = new InputStreamReader(new URL(String.format(DETAILS_URL, id)).openStream())) {
+			try (InputStreamReader input = new InputStreamReader(new URL(String.format(DETAILS_URL, this.generation, id)).openStream())) {
 				JsonNode details = OrnitheMeta.MAPPER.readTree(input);
 				String normalized = details.get("normalizedVersion").asText();
 

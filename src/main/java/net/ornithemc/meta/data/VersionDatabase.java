@@ -18,7 +18,6 @@
 
 package net.ornithemc.meta.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -43,7 +42,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@JsonIgnoreProperties({"manifest"})
 public class VersionDatabase {
 
 	public static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
@@ -162,7 +160,7 @@ public class VersionDatabase {
 		return modules;
 	}
 
-	public final VersionManifest manifest;
+	private final Int2ObjectMap<VersionManifest> manifests;
 	private final Int2ObjectMap<List<BaseVersion>> game;
 	private final Int2ObjectMap<List<MavenVersion>> intermediary;
 	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
@@ -178,7 +176,7 @@ public class VersionDatabase {
 	public List<LibraryUpgrade> libraryUpgrades;
 
 	private VersionDatabase() {
-		this.manifest = new VersionManifest();
+		this.manifests = new Int2ObjectOpenHashMap<>();
 		this.game = new Int2ObjectOpenHashMap<>();
 		this.intermediary = new Int2ObjectOpenHashMap<>();
 		this.feather = new Int2ObjectOpenHashMap<>();
@@ -212,7 +210,7 @@ public class VersionDatabase {
 		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.nests = NESTS_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.installer = INSTALLER_METADATA_PARSER.getVersions(MavenUrlVersion::new);
-		database.libraryUpgrades = LibraryUpgradesV3.get();
+		database.libraryUpgrades = LibraryUpgradesV3.reload();
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
 		return database;
@@ -314,6 +312,10 @@ public class VersionDatabase {
 		raven.removeIf(p.apply("v3 raven"));
 		sparrow.removeIf(p.apply("v3 sparrow"));
 		nests.removeIf(p.apply("v3 nests"));
+	}
+
+	public VersionManifest getManifest(int generation) {
+		return manifests.computeIfAbsent(generation, VersionManifest::new);
 	}
 
 	public List<BaseVersion> getGame(int generation) {
