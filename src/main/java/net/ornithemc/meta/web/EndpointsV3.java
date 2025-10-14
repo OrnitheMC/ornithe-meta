@@ -53,6 +53,8 @@ public class EndpointsV3 {
 
 		jsonGet("", () -> OrnitheMeta.database);
 
+		jsonGet("/intermediary_generations", () -> OrnitheMeta.database.intermediaryGenerations);
+
 		jsonGetS("/game", generation -> () -> OrnitheMeta.database.getGame(generation));
 		jsonGetS("/game/intermediary", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getIntermediary(generation), BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
 		jsonGetS("/game/feather", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getFeather(generation), MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));

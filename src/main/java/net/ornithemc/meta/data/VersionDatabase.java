@@ -171,6 +171,7 @@ public class VersionDatabase {
 	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslModules;
 	private final Int2ObjectMap<Map<LoaderType, List<MavenBuildVersion>>> loader;
 
+	public IntermediaryGenerations intermediaryGenerations;
 	public List<MavenBuildGameVersion> raven;
 	public List<MavenBuildGameVersion> sparrow;
 	public List<MavenBuildGameVersion> nests;
@@ -208,6 +209,7 @@ public class VersionDatabase {
 			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
 			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.QUILT)));
 		}
+		database.intermediaryGenerations = new IntermediaryGenerations(config.latestIntermediaryGeneration, config.stableIntermediaryGeneration);
 		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.nests = NESTS_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
