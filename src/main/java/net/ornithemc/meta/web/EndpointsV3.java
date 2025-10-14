@@ -85,10 +85,10 @@ public class EndpointsV3 {
 
 		jsonGet("/installer", context -> withLimitSkip(context, OrnitheMeta.database.installer));
 
-		jsonGet("/osl", context -> withLimitSkip(context, OrnitheMeta.database.osl));
-		jsonGet("/osl/:version", context -> withLimitSkip(context, getOslDependencyInfo(context)));
-		jsonGet("/osl/:module/:game_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
-		jsonGet("/osl/:module/:game_version/:base_version", context -> withLimitSkip(context, getOslModuleInfo(context)));
+		jsonGetF("/osl", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getOsl(generation)));
+		jsonGetF("/osl/:version", generation -> context -> withLimitSkip(context, getOslDependencyInfo(context, generation)));
+		jsonGetF("/osl/:module/:game_version", generation -> context -> withLimitSkip(context, getOslModuleInfo(context, generation)));
+		jsonGetF("/osl/:module/:game_version/:base_version", generation -> context -> withLimitSkip(context, getOslModuleInfo(context, generation)));
 
 		ProfileHandlerV3.setup();
 	}
@@ -238,18 +238,18 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	private static List<?> getOslDependencyInfo(Context context) {
+	private static List<?> getOslDependencyInfo(Context context, int generation) {
 		if (!context.pathParamMap().containsKey("version")) {
 			return null;
 		}
 
 		String version = context.pathParam("version");
-		List<MavenVersion> versions = OrnitheMeta.database.getOslDependencies(version);
+		List<MavenVersion> versions = OrnitheMeta.database.getOslDependencies(generation, version);
 
 		return versions;
 	}
 
-	private static List<?> getOslModuleInfo(Context context) {
+	private static List<?> getOslModuleInfo(Context context, int generation) {
 		if (!context.pathParamMap().containsKey("module")) {
 			return null;
 		}
@@ -265,7 +265,7 @@ public class EndpointsV3 {
 			return null;
 		}
 
-		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(module);
+		List<MavenVersion> versions = OrnitheMeta.database.getOslModule(generation, module);
 
 		if (context.pathParamMap().containsKey("base_version")) {
 			String baseVersion = context.pathParam("base_version");
