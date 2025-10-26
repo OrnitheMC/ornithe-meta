@@ -63,6 +63,7 @@ public class VersionDatabase {
 	public static final MavenPomParser OSL_POM_PARSER = new MavenPomParser(ORNITHE_MAVEN_URL, "net.ornithemc", "osl");
 
 	private static final Pattern INVALID_FABRIC_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1[0-6])\\.|0\\.17\\.[0-2])");
+	private static final Pattern INVALID_QUILT_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1\\d|2[0-8])\\.|0\\.29\\.[0-2])");
 
 	public static ConfigV3 config;
 
@@ -96,6 +97,25 @@ public class VersionDatabase {
 				if (generation >= 2 && INVALID_FABRIC_LOADER_VERSIONS_GEN2.matcher(version.getVersion()).matches()) {
 					it.remove();
 				} else if (!foundStableVersion && isPublicLoaderVersion(version)) {
+					foundStableVersion = true;
+					version.setStable(true);
+				}
+			}
+		};
+	}
+
+	public static StableVersionIdentifier filterQuiltLoaderVersions(int generation) {
+		return versions -> {
+			boolean foundStableVersion = false;
+
+			for (Iterator<? extends BaseVersion> it = versions.iterator(); it.hasNext(); ) {
+				BaseVersion version = it.next();
+
+				if (generation >= 2 && INVALID_QUILT_LOADER_VERSIONS_GEN2.matcher(version.getVersion()).matches()) {
+					it.remove();
+				} else
+				// Quilt publishes beta versions of their loader, filter those out
+				if (!foundStableVersion && isPublicLoaderVersion(version) && !version.getVersion().contains("-")) {
 					foundStableVersion = true;
 					version.setStable(true);
 				}
@@ -174,15 +194,7 @@ public class VersionDatabase {
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
 			database.loader.put(generation, new EnumMap<>(LoaderType.class));
 			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterFabricLoaderVersions(generation)));
-			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, list -> {
-				for (BaseVersion version : list) {
-					// Quilt publishes beta versions of their loader, filter those out
-					if (isPublicLoaderVersion(version) && !version.getVersion().contains("-")) {
-						version.setStable(true);
-						break;
-					}
-				}
-			}));
+			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterQuiltLoaderVersions(generation)));
 		}
 		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
