@@ -172,9 +172,10 @@ public class ProfileHandlerV3 {
 		arguments.putArray("game");
 
 		if (generation >= 2) {
-			jvmArgs.add("-Dfabric.fixPackageAccess");
+			jvmArgs.add(info.getLoaderType().getSystemProperties().fixPackageAccess());
+			jvmArgs.add("true"); // not needed for FLoader, but QLoader requires the value to be true
 		}
-		jvmArgs.add("-Dfabric.gameVersion");
+		jvmArgs.add(info.getLoaderType().getSystemProperties().gameVersion());
 		jvmArgs.add(info.getIntermediary().getVersion());
 
 		profile.set("arguments", arguments);
