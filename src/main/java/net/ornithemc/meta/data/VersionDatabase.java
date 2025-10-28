@@ -87,35 +87,27 @@ public class VersionDatabase {
 		return new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc.osl", module);
 	}
 
-	public static StableVersionIdentifier filterFabricLoaderVersions(int generation) {
-		return versions -> {
-			boolean foundStableVersion = false;
-
-			for (Iterator<? extends BaseVersion> it = versions.iterator(); it.hasNext(); ) {
-				BaseVersion version = it.next();
-
-				if (generation >= 2 && INVALID_FABRIC_LOADER_VERSIONS_GEN2.matcher(version.getVersion()).matches()) {
-					it.remove();
-				} else if (!foundStableVersion && isPublicLoaderVersion(version)) {
-					foundStableVersion = true;
-					version.setStable(true);
-				}
-			}
-		};
+	public static Pattern invalidLoaderVersionsPattern(LoaderType loaderType) {
+		switch (loaderType) {
+		case FABRIC:
+			return INVALID_FABRIC_LOADER_VERSIONS_GEN2;
+		case QUILT:
+			return INVALID_QUILT_LOADER_VERSIONS_GEN2;
+		default:
+			throw new IllegalStateException("no invalid loader versions pattern for loader type " + loaderType.getName());
+		}
 	}
 
-	public static StableVersionIdentifier filterQuiltLoaderVersions(int generation) {
+	public static StableVersionIdentifier filterLoaderVersions(int generation, LoaderType loaderType) {
 		return versions -> {
 			boolean foundStableVersion = false;
 
 			for (Iterator<? extends BaseVersion> it = versions.iterator(); it.hasNext(); ) {
 				BaseVersion version = it.next();
 
-				if (generation >= 2 && INVALID_QUILT_LOADER_VERSIONS_GEN2.matcher(version.getVersion()).matches()) {
+				if (generation >= 2 && invalidLoaderVersionsPattern(loaderType).matcher(version.getVersion()).matches()) {
 					it.remove();
-				} else
-				// Quilt publishes beta versions of their loader, filter those out
-				if (!foundStableVersion && isPublicLoaderVersion(version) && !version.getVersion().contains("-")) {
+				} else if (!foundStableVersion && isPublicLoaderVersion(loaderType, version)) {
 					foundStableVersion = true;
 					version.setStable(true);
 				}
@@ -193,8 +185,8 @@ public class VersionDatabase {
 			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
 			database.loader.put(generation, new EnumMap<>(LoaderType.class));
-			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterFabricLoaderVersions(generation)));
-			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterQuiltLoaderVersions(generation)));
+			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
+			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.QUILT)));
 		}
 		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
@@ -215,8 +207,9 @@ public class VersionDatabase {
 		return database;
 	}
 
-	private static boolean isPublicLoaderVersion(BaseVersion version) {
-		return true;
+	private static boolean isPublicLoaderVersion(LoaderType type, BaseVersion version) {
+		// Quilt publishes beta versions of their loader, filter those out
+		return !(type == LoaderType.QUILT && version.getVersion().contains("-"));
 	}
 
 	private void loadMcData() throws IOException {
@@ -325,7 +318,7 @@ public class VersionDatabase {
 	}
 
 	public List<MavenBuildVersion> getLoader(int generation, LoaderType type) {
-		return loader.get(generation).get(type).stream().filter(VersionDatabase::isPublicLoaderVersion).collect(Collectors.toList());
+		return loader.get(generation).get(type).stream().filter(v -> isPublicLoaderVersion(type, v)).collect(Collectors.toList());
 	}
 
 	public List<MavenVersion> getOslDependencies(String version) {
