@@ -57,8 +57,6 @@ public class VersionDatabase {
 	public static final MavenMetadataParser FABRIC_LOADER_METADATA_PARSER = new MavenMetadataParser(FABRIC_MAVEN_URL, "net.fabricmc", "fabric-loader");
 	public static final MavenMetadataParser QUILT_LOADER_METADATA_PARSER = new MavenMetadataParser(QUILT_MAVEN_URL, "org.quiltmc", "quilt-loader");
 	public static final MavenMetadataParser INSTALLER_METADATA_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-installer");
-	public static final MavenMetadataParser OSL_METADATA_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "osl");
-	public static final MavenPomParser OSL_POM_PARSER = new MavenPomParser(ORNITHE_MAVEN_URL, "net.ornithemc", "osl");
 
 	public static ConfigV3 config;
 
@@ -70,6 +68,10 @@ public class VersionDatabase {
 		return new MavenMetadataParser(ORNITHE_MAVEN_URL, groupId, modifyForIntermediaryGeneration(artifactId, generation), generation <= config.stableIntermediaryGeneration);
 	}
 
+	private static final MavenPomParser generationalMavenPomParser(int generation, String groupId, String artifactId) {
+		return new MavenPomParser(ORNITHE_MAVEN_URL, groupId, modifyForIntermediaryGeneration(artifactId, generation), generation <= config.stableIntermediaryGeneration);
+	}
+
 	public static final MavenMetadataParser intermediaryMetadataParser(int generation) {
 		return generationalMavenMetadataParser(generation, "net.ornithemc", "calamus-intermediary");
 	}
@@ -78,15 +80,23 @@ public class VersionDatabase {
 		return generationalMavenMetadataParser(generation, "net.ornithemc", "feather");
 	}
 
-	public static final MavenMetadataParser oslModuleMetadataParser(String module) {
-		return new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc.osl", module);
+	public static final MavenMetadataParser oslMetadataParser(int generation) {
+		return generationalMavenMetadataParser(generation, "net.ornithemc", "osl");
 	}
 
-	private static List<String> oslModules() {
+	public static final MavenPomParser oslPomParser(int generation) {
+		return generationalMavenPomParser(generation, "net.ornithemc", "osl");
+	}
+
+	public static final MavenMetadataParser oslModuleMetadataParser(int generation, String module) {
+		return new MavenMetadataParser(ORNITHE_MAVEN_URL, modifyForIntermediaryGeneration("net.ornithemc.osl", generation), module, generation <= config.stableIntermediaryGeneration);
+	}
+
+	private static List<String> oslModules(int generation) {
 		List<String> modules = new ArrayList<>();
 
 		try {
-			URL url = new URL(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl");
+			URL url = new URL(modifyForIntermediaryGeneration(ORNITHE_MAVEN_DETAILS_URL + "net/ornithemc/osl", generation));
 
 			try (InputStreamReader input = new InputStreamReader(url.openStream())) {
 				JsonNode json = OrnitheMeta.MAPPER.readTree(input);
@@ -123,15 +133,15 @@ public class VersionDatabase {
 	private final Int2ObjectMap<List<BaseVersion>> game;
 	private final Int2ObjectMap<List<MavenVersion>> intermediary;
 	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
+	private final Int2ObjectMap<List<MavenVersion>> osl;
+	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslDependencies;
+	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslModules;
 	private final Map<LoaderType, List<MavenBuildVersion>> loader;
-	private final Map<String, List<MavenVersion>> oslDependencies;
-	private final Map<String, List<MavenVersion>> oslModules;
 
 	public List<MavenBuildGameVersion> raven;
 	public List<MavenBuildGameVersion> sparrow;
 	public List<MavenBuildGameVersion> nests;
 	public List<MavenUrlVersion> installer;
-	public List<MavenVersion> osl;
 	public List<LibraryUpgrade> libraryUpgrades;
 
 	private VersionDatabase() {
@@ -139,9 +149,10 @@ public class VersionDatabase {
 		this.game = new Int2ObjectOpenHashMap<>();
 		this.intermediary = new Int2ObjectOpenHashMap<>();
 		this.feather = new Int2ObjectOpenHashMap<>();
+		this.osl = new Int2ObjectOpenHashMap<>();
+		this.oslDependencies = new Int2ObjectOpenHashMap<>();
+		this.oslModules = new Int2ObjectOpenHashMap<>();
 		this.loader = new EnumMap<>(LoaderType.class);
-		this.oslDependencies = new HashMap<>();
-		this.oslModules = new HashMap<>();
 	}
 
 	public static VersionDatabase generate() throws Exception {
@@ -151,6 +162,15 @@ public class VersionDatabase {
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
+			database.osl.put(generation, oslMetadataParser(generation).getVersions(MavenVersion::new));
+			for (MavenVersion version : database.osl.get(generation)) {
+				database.oslDependencies.computeIfAbsent(generation, key -> new HashMap<>()).put(version.getVersion(), oslPomParser(generation).getDependencies(MavenVersion::new, version.getVersion(), v -> {
+					return v.getMaven().startsWith("net.ornithemc.osl");
+				}));
+			}
+			for (String module : oslModules(generation)) {
+				database.oslModules.computeIfAbsent(generation, key -> new HashMap<>()).put(module, oslModuleMetadataParser(generation, module).getVersions(MavenVersion::new));
+			}
 		}
 		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
 		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
@@ -173,15 +193,6 @@ public class VersionDatabase {
 			}
 		}));
 		database.installer = INSTALLER_METADATA_PARSER.getVersions(MavenUrlVersion::new);
-		database.osl = OSL_METADATA_PARSER.getVersions(MavenVersion::new);
-		for (MavenVersion version : database.osl) {
-			database.oslDependencies.put(version.getVersion(), OSL_POM_PARSER.getDependencies(MavenVersion::new, version.getVersion(), v -> {
-				return v.getMaven().startsWith("net.ornithemc.osl");
-			}));
-		}
-		for (String module : oslModules()) {
-			database.oslModules.put(module, oslModuleMetadataParser(module).getVersions(MavenVersion::new));
-		}
 		database.libraryUpgrades = LibraryUpgradesV3.get();
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
@@ -297,16 +308,20 @@ public class VersionDatabase {
 		return feather.get(generation);
 	}
 
+	public List<MavenVersion> getOsl(int generation) {
+		return osl.get(generation);
+	}
+
+	public List<MavenVersion> getOslDependencies(int generation, String version) {
+		return oslDependencies.get(generation).get(version);
+	}
+
+	public List<MavenVersion> getOslModule(int generation, String module) {
+		return oslModules.get(generation).get(module);
+	}
+
 	public List<MavenBuildVersion> getLoader(LoaderType type) {
 		return loader.get(type).stream().filter(VersionDatabase::isPublicLoaderVersion).collect(Collectors.toList());
-	}
-
-	public List<MavenVersion> getOslDependencies(String version) {
-		return oslDependencies.get(version);
-	}
-
-	public List<MavenVersion> getOslModule(String module) {
-		return oslModules.get(module);
 	}
 
 	public List<MavenBuildVersion> getAllLoader(LoaderType type) {
