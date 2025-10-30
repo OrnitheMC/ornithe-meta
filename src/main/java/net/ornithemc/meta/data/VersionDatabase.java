@@ -62,8 +62,8 @@ public class VersionDatabase {
 	public static final MavenMetadataParser OSL_METADATA_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "osl");
 	public static final MavenPomParser OSL_POM_PARSER = new MavenPomParser(ORNITHE_MAVEN_URL, "net.ornithemc", "osl");
 
-	private static final Pattern INVALID_FABRIC_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1[0-6])\\.|0\\.17\\.[0-2])");
-	private static final Pattern INVALID_QUILT_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1\\d|2[0-8])\\.|0\\.29\\.[0-2])");
+	private static final Pattern INVALID_FABRIC_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1[0-6])\\..+|0\\.17\\.[0-2])");
+	private static final Pattern INVALID_QUILT_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1\\d|2[0-8])\\..+|0\\.29\\.[0-2])");
 
 	public static ConfigV3 config;
 
