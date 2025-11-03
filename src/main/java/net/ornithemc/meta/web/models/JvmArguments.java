@@ -18,21 +18,21 @@
 
 package net.ornithemc.meta.web.models;
 
-public class SystemProperties {
+public class JvmArguments {
 
 	String fixPackageAccess;
 	String gameVersion;
 
-	public SystemProperties(String fixPackageAccess, String gameVersion) {
+	public JvmArguments(String fixPackageAccess, String gameVersion) {
 		this.fixPackageAccess = fixPackageAccess;
 		this.gameVersion = gameVersion;
 	}
 
-	public String fixPackageAccess() {
-		return this.fixPackageAccess;
+	public String fixPackageAccess(boolean value) {
+		return this.fixPackageAccess + "=" + value;
 	}
 
-	public String gameVersion() {
-		return this.gameVersion;
+	public String gameVersion(String value) {
+		return this.gameVersion + "=" + value;
 	}
 }

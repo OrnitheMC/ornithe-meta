@@ -172,11 +172,10 @@ public class ProfileHandlerV3 {
 		arguments.putArray("game");
 
 		if (generation >= 2) {
-			jvmArgs.add(info.getLoaderType().getSystemProperties().fixPackageAccess());
-			jvmArgs.add("true"); // not needed for FLoader, but QLoader requires the value to be true
+			// value not needed for FLoader, but QLoader requires the value to be true
+			jvmArgs.add(info.getLoaderType().getJvmArguments().fixPackageAccess(true));
 		}
-		jvmArgs.add(info.getLoaderType().getSystemProperties().gameVersion());
-		jvmArgs.add(info.getIntermediary().getVersion());
+		jvmArgs.add(info.getLoaderType().getJvmArguments().gameVersion(info.getGame(side)));
 
 		profile.set("arguments", arguments);
 
