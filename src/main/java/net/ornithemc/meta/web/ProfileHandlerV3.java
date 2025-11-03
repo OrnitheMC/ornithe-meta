@@ -167,9 +167,15 @@ public class ProfileHandlerV3 {
 		}
 
 		ObjectNode arguments = OrnitheMeta.MAPPER.createObjectNode();
-
+		ArrayNode jvmArgs = arguments.putArray("jvm");
 		// I believe this is required to stop the launcher from complaining
 		arguments.putArray("game");
+
+		if (generation >= 2) {
+			// value not needed for FLoader, but QLoader requires the value to be true
+			jvmArgs.add(info.getLoaderType().getJvmArguments().fixPackageAccess(true));
+		}
+		jvmArgs.add(info.getLoaderType().getJvmArguments().gameVersion(info.getGame(side)));
 
 		profile.set("arguments", arguments);
 
