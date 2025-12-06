@@ -197,13 +197,15 @@ public class VersionDatabase {
 			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
 			database.osl.put(generation, oslMetadataParser(generation).getVersions(MavenVersion::new));
+			database.oslDependencies.put(generation, new HashMap<>());
+			database.oslModules.put(generation, new HashMap<>());
 			for (MavenVersion version : database.osl.get(generation)) {
-				database.oslDependencies.computeIfAbsent(generation, key -> new HashMap<>()).put(version.getVersion(), oslPomParser(generation).getDependencies(MavenVersion::new, version.getVersion(), v -> {
+				database.oslDependencies.get(generation).put(version.getVersion(), oslPomParser(generation).getDependencies(MavenVersion::new, version.getVersion(), v -> {
 					return v.getMaven().startsWith("net.ornithemc.osl");
 				}));
 			}
 			for (String module : oslModules(generation)) {
-				database.oslModules.computeIfAbsent(generation, key -> new HashMap<>()).put(module, oslModuleMetadataParser(generation, module).getVersions(MavenVersion::new));
+				database.oslModules.get(generation).put(module, oslModuleMetadataParser(generation, module).getVersions(MavenVersion::new));
 			}
 			database.loader.put(generation, new EnumMap<>(LoaderType.class));
 			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
