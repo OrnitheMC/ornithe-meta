@@ -19,6 +19,7 @@
 package net.ornithemc.meta.utils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIncludeProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vdurmont.semver4j.Semver;
 
@@ -142,6 +143,7 @@ public class VersionManifest {
 		}
 	}
 
+	@JsonIncludeProperties({"id", "normalizedVersion"})
 	public static class VersionDetails {
 
 		public String id;
