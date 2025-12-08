@@ -19,8 +19,8 @@
 package net.ornithemc.meta.data;
 
 import net.ornithemc.meta.OrnitheMeta;
-import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.MavenMetadataParser;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.MavenBuildVersion;
 import net.ornithemc.meta.web.models.MavenUrlVersion;
@@ -72,11 +72,11 @@ public class VersionDatabaseOld {
 		if (calamus == null) {
 			throw new RuntimeException("Mappings are null");
 		}
-		MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getSortedMeta(1);
+		VersionManifest manifest = VersionManifest.forGenSorted(1);
 
 		//Sorts in the order of minecraft release dates
 		calamus = new ArrayList<>(calamus);
-		calamus.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersion())));
+		calamus.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersion())));
 		calamus.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
@@ -88,7 +88,7 @@ public class VersionDatabaseOld {
 				iVersion = o.getVersion();
 			}
 
-			if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(iVersion))) {
+			if (!manifest.contains(iVersion)) {
 				OrnitheMeta.LOGGER.info("Removing {} as it is not match an mc version (v2)", o.getVersion());
 				return true;
 			}
@@ -102,7 +102,7 @@ public class VersionDatabaseOld {
 			}
 		}
 
-		game = minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList());
+		game = minecraftVersions.stream().map(s -> new BaseVersion(s, manifest.isStable(s))).collect(Collectors.toList());
 	}
 
 	public List<MavenBuildVersion> getLoader() {

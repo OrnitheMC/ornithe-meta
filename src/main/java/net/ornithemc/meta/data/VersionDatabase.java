@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.ornithemc.meta.OrnitheMeta;
-import net.ornithemc.meta.utils.MinecraftLauncherMeta;
 import net.ornithemc.meta.utils.MavenPomParser;
 import net.ornithemc.meta.utils.MavenMetadataParser;
 import net.ornithemc.meta.utils.MavenMetadataParser.StableVersionIdentifier;
@@ -191,6 +190,7 @@ public class VersionDatabase {
 		VersionDatabase database = new VersionDatabase();
 		config = ConfigV3.load();
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
+			database.manifests.put(generation, VersionManifest.forGenSorted(generation));
 			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
 			database.osl.put(generation, oslMetadataParser(generation).getVersions(MavenVersion::new));
@@ -226,21 +226,18 @@ public class VersionDatabase {
 			throw new RuntimeException("Mappings are empty");
 		}
 
-		Int2ObjectMap<MinecraftLauncherMeta> launcherMetas = new Int2ObjectOpenHashMap<>();
-
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			final int gen = generation;
-			final MinecraftLauncherMeta launcherMeta = MinecraftLauncherMeta.getSortedMeta(gen);
-			launcherMetas.put(generation, launcherMeta);
+			final VersionManifest manifest = manifests.get(generation);
 			intermediary.compute(generation, (key, value) -> {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
-				value.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersionNoSide())));
 				value.forEach(version -> version.setStable(true));
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
-					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+					if (!manifest.contains(o.getVersionNoSide())) {
 						OrnitheMeta.LOGGER.info("Removing {} from intermediary v3{} as it does not match a mc version", o.getVersion(), (gen < 1 ? "" : " gen" + gen));
 						return true;
 					}
@@ -252,12 +249,12 @@ public class VersionDatabase {
 			feather.compute(generation, (key, value) -> {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
-				value.sort(Comparator.comparingInt(o -> launcherMeta.getIndex(o.getVersionNoSide())));
+				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersionNoSide())));
 				value.forEach(version -> version.setStable(true));
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
-					if (launcherMeta.getVersions().stream().noneMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+					if (!manifest.contains(o.getVersionNoSide())) {
 						OrnitheMeta.LOGGER.info("Removing {} from v3 feather gen{} as it does not match a mc version", o.getGameVersion(), gen);
 						return true;
 					}
@@ -274,13 +271,13 @@ public class VersionDatabase {
 				}
 			}
 
-			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, launcherMeta.isStable(s))).collect(Collectors.toList()));
+			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, manifest.isStable(s))).collect(Collectors.toList()));
 		}
 
 		Function<String, Predicate<MavenBuildGameVersion>> p = src -> {
 			return o -> {
 				for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
-					if (launcherMetas.get(generation).getVersions().stream().anyMatch(metaVersion -> metaVersion.getId().equals(o.getVersionNoSide()))) {
+					if (manifests.get(generation).contains(o.getVersionNoSide())) {
 						return false;
 					}
 				}
@@ -292,9 +289,9 @@ public class VersionDatabase {
 			int i1 = Integer.MAX_VALUE;
 			int i2 = Integer.MAX_VALUE;
 			for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
-				MinecraftLauncherMeta launcherMeta = launcherMetas.get(generation);
-				i1 = Math.min(i1, launcherMeta.getIndex(v1.getVersionNoSide()));
-				i2 = Math.min(i2, launcherMeta.getIndex(v2.getVersionNoSide()));
+				VersionManifest manifest = manifests.get(generation);
+				i1 = Math.min(i1, manifest.indexOf(v1.getVersionNoSide()));
+				i2 = Math.min(i2, manifest.indexOf(v2.getVersionNoSide()));
 			}
 			return Integer.compare(i1, i2);
 		};
@@ -315,7 +312,7 @@ public class VersionDatabase {
 	}
 
 	public VersionManifest getManifest(int generation) {
-		return manifests.computeIfAbsent(generation, VersionManifest::new);
+		return manifests.get(generation);
 	}
 
 	public List<BaseVersion> getGame(int generation) {

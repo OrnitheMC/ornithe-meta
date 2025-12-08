@@ -162,7 +162,7 @@ public class EndpointsV3 {
 		}
 
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.getManifest(generation).getVersion(gameVersion);
+		Semver version = OrnitheMeta.database.getManifest(generation).normalize(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -262,7 +262,7 @@ public class EndpointsV3 {
 
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
-		Semver version = manifest.getVersion(gameVersion);
+		Semver version = manifest.normalize(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -301,8 +301,8 @@ public class EndpointsV3 {
 					}
 
 					try {
-						Semver vmin = manifest.getVersion(minGameVersion);
-						Semver vmax = manifest.getVersion(maxGameVersion);
+						Semver vmin = manifest.normalize(minGameVersion);
+						Semver vmax = manifest.normalize(maxGameVersion);
 
 						return version.compareTo(vmin) >= 0 && version.compareTo(vmax) <= 0;
 					} catch (NoSuchElementException e) {
