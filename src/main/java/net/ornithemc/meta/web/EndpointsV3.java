@@ -23,6 +23,7 @@ import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
 import net.ornithemc.meta.web.models.BaseVersion;
 import net.ornithemc.meta.web.models.Library;
@@ -163,7 +164,7 @@ public class EndpointsV3 {
 		}
 
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+		Semver version = OrnitheMeta.database.getManifest(generation).normalize(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -259,9 +260,11 @@ public class EndpointsV3 {
 			return null;
 		}
 
+		VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.manifest.getVersion(gameVersion);
+		Semver version = manifest.normalize(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -300,8 +303,8 @@ public class EndpointsV3 {
 					}
 
 					try {
-						Semver vmin = OrnitheMeta.database.manifest.getVersion(minGameVersion);
-						Semver vmax = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
+						Semver vmin = manifest.normalize(minGameVersion);
+						Semver vmax = manifest.normalize(maxGameVersion);
 
 						return version.compareTo(vmin) >= 0 && version.compareTo(vmax) <= 0;
 					} catch (NoSuchElementException e) {

@@ -26,10 +26,12 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import com.vdurmont.semver4j.Semver;
 
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.models.Library;
 
 public class LibraryUpgradesV3 {
@@ -38,14 +40,7 @@ public class LibraryUpgradesV3 {
 
 	private static List<LibraryUpgrade> cache;
 
-	public static List<LibraryUpgrade> get() {
-		reload();
-		validate();
-
-		return cache;
-	}
-
-	private static void reload() {
+	public static List<LibraryUpgrade> reload() {
 		if (Files.exists(FILE_PATH)) {
 			try (InputStream is = Files.newInputStream(FILE_PATH);) {
 				cache = OrnitheMeta.MAPPER.readValue(is, new TypeReference<List<LibraryUpgrade>>() { });
@@ -53,47 +48,8 @@ public class LibraryUpgradesV3 {
 				OrnitheMeta.LOGGER.warn("unable to load library upgrades from file", e);
 			}
 		}
-	}
 
-	private static void validate() {
-		if (cache == null) {
-			throw new RuntimeException("library upgrades v3 could not be read from file: file does not exist or is badly formatted");
-		}
-
-		for (LibraryUpgrade lib : cache) {
-			String name = lib.name;
-			String[] parts = name.split("[:]");
-
-			if (parts.length < 3 || parts.length > 4) {
-				throw new RuntimeException("invalid maven notation for library upgrade: " + name);
-			}
-
-			Integer minGeneration = lib.minIntermediaryGeneration;
-			Integer maxGeneration = lib.maxIntermediaryGeneration;
-
-			if (minGeneration != null && maxGeneration != null && minGeneration > maxGeneration) {
-				throw new RuntimeException("invalid intermediary generation bounds for library upgrade: " + name + " (" + minGeneration + " > " + maxGeneration + ")");
-			}
-
-			String minGameVersion = lib.minGameVersion;
-			String maxGameVersion = lib.maxGameVersion;
-
-			if (minGameVersion != null && maxGameVersion != null) {
-				Semver min = OrnitheMeta.database.manifest.getVersion(minGameVersion);
-				Semver max = OrnitheMeta.database.manifest.getVersion(maxGameVersion);
-
-				if (min == null) {
-					throw new RuntimeException("unknown minimum game version for library upgrade: " + name + " (" + minGameVersion + ")");
-				}
-				if (max == null) {
-					throw new RuntimeException("unknown maximum game version for library upgrade: " + name + " (" + maxGameVersion + ")");
-				}
-
-				if (min.compareTo(max) > 0) {
-					throw new RuntimeException("invalid game version bounds for library upgrade: " + name + " (" + minGameVersion + " > " + maxGameVersion + ")");
-				}
-			}
-		}
+		return cache;
 	}
 
 	public static class LibraryUpgrade {
@@ -106,7 +62,55 @@ public class LibraryUpgradesV3 {
 		public String minGameVersion;
 		public String maxGameVersion;
 
+		private boolean validated;
+
+		private void validate() {
+			if (this.validated) {
+				return;
+			}
+
+			String[] parts = this.name.split("[:]");
+
+			if (parts.length < 3 || parts.length > 4) {
+				throw new RuntimeException("invalid maven notation for library upgrade: " + name);
+			}
+
+			if (minIntermediaryGeneration != null && maxIntermediaryGeneration != null && minIntermediaryGeneration > maxIntermediaryGeneration) {
+				throw new RuntimeException("invalid intermediary generation bounds for library upgrade: " + name + " (" + minIntermediaryGeneration + " > " + maxIntermediaryGeneration + ")");
+			}
+
+			// generation bounds for checking version bounds
+			int minGen = (minIntermediaryGeneration == null) ? 1 : minIntermediaryGeneration;
+			int maxGen = (maxIntermediaryGeneration == null) ? VersionDatabase.config.latestIntermediaryGeneration : maxIntermediaryGeneration;
+
+
+			if (minGameVersion != null || maxGameVersion != null) {
+				for (int generation = minGen; generation <= maxGen; generation++) {
+					VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+
+					Semver minVersion = (minGameVersion == null) ? null : manifest.normalize(minGameVersion);
+					Semver maxVersion = (maxGameVersion == null) ? null : manifest.normalize(maxGameVersion);
+
+					if (minGameVersion != null && minVersion == null) {
+						throw new RuntimeException("unknown minimum game version for library upgrade (gen" + generation + ": " + name + " (" + minGameVersion + ")");
+					}
+					if (maxGameVersion != null && maxVersion == null) {
+						throw new RuntimeException("unknown maximum game version for library upgrade (gen" + generation + ": " + name + " (" + maxGameVersion + ")");
+					}
+					
+					if (minVersion != null && maxVersion != null && minVersion.compareTo(maxVersion) > 0) {
+						throw new RuntimeException("invalid game version bounds for library upgrade (gen" + generation + "): " + name + " (" + minGameVersion + " > " + maxGameVersion + ")");
+					}
+				}
+
+			}
+
+			this.validated = true;
+		}
+
 		public boolean test(int generation, String gameVersion) {
+			validate();
+
 			if (this.minIntermediaryGeneration != null && generation < this.minIntermediaryGeneration) {
 				return false;
 			}
@@ -114,19 +118,20 @@ public class LibraryUpgradesV3 {
 				return false;
 			}
 
-			Semver v = OrnitheMeta.database.manifest.getVersion(gameVersion);
+			VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+			Semver version = manifest.normalize(gameVersion);
 
 			if (this.minGameVersion != null) {
-				Semver vmin = OrnitheMeta.database.manifest.getVersion(this.minGameVersion);
+				Semver minVersion = manifest.normalize(this.minGameVersion);
 
-				if (v.compareTo(vmin) < 0) {
+				if (version.compareTo(minVersion) < 0) {
 					return false;
 				}
 			}
 			if (this.maxGameVersion != null) {
-				Semver vmax = OrnitheMeta.database.manifest.getVersion(this.maxGameVersion);
+				Semver maxVersion = manifest.normalize(this.maxGameVersion);
 
-				if (v.compareTo(vmax) > 0) {
+				if (version.compareTo(maxVersion) > 0) {
 					return false;
 				}
 			}
