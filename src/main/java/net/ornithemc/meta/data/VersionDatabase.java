@@ -58,7 +58,7 @@ public class VersionDatabase {
 	public static final MavenMetadataParser INSTALLER_METADATA_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-installer");
 
 	private static final Pattern INVALID_FABRIC_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1[0-6])\\..+|0\\.17\\.[0-2])");
-	private static final Pattern INVALID_QUILT_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1\\d|2[0-8])\\..+|0\\.29\\.[0-2])");
+	private static final Pattern INVALID_QUILT_LOADER_VERSIONS_GEN2 = Pattern.compile("^(?:0\\.(?:\\d|1\\d|2[0-8])\\..+|0\\.29\\.[0-2].*)");
 
 	public static ConfigV3 config;
 
@@ -221,8 +221,7 @@ public class VersionDatabase {
 	}
 
 	private static boolean isPublicLoaderVersion(LoaderType type, BaseVersion version) {
-		// Quilt publishes beta versions of their loader, filter those out
-		return !(type == LoaderType.QUILT && version.getVersion().contains("-"));
+		return true;
 	}
 
 	private void loadMcData() throws IOException {
