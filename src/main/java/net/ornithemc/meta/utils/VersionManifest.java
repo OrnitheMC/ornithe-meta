@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIncludeProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vdurmont.semver4j.Semver;
-
 import net.ornithemc.meta.OrnitheMeta;
 import org.apache.commons.io.IOUtils;
 
@@ -31,9 +30,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @JsonIgnoreProperties({"$schema", "latest"})
 public class VersionManifest {
@@ -43,7 +42,7 @@ public class VersionManifest {
 
 	public VersionManifest(@JsonProperty("versions") List<Version> versions) {
 		this.versions = versions;
-		this.details = new HashMap<>();
+		this.details = new ConcurrentHashMap<>();
 	}
 
 	public static VersionManifest forGen(int generation) throws IOException {
