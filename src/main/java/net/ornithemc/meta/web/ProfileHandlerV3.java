@@ -21,6 +21,8 @@ package net.ornithemc.meta.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.vdurmont.semver4j.Semver;
+
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
@@ -34,6 +36,7 @@ import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -178,8 +181,27 @@ public class ProfileHandlerV3 {
 		jvmArgs.add(info.getLoaderType().getJvmArguments().gameVersion(info.getGame(side)));
 
 		profile.set("arguments", arguments);
+		profile.set("libraries", libraries);
 
-		profile.put("libraries", libraries);
+		Semver version = OrnitheMeta.database.getManifest(generation).normalize(info.getGame(side));
+		Semver boundary = OrnitheMeta.database.getManifest(generation).normalize("17w15a");
+
+		if (version.compareTo(boundary) < 0 && "client".equals(side)) {
+			Optional<Semver> log4jUpgrade = OrnitheMeta.database.libraryUpgrades.stream()
+				.filter(l -> l.test(generation, info.getGame(side)))
+				.filter(l -> l.name.split("[:]")[1].equals("log4j-core"))
+				.findFirst()
+				.map(l -> new Semver(l.name.split("[:]")[2]));
+
+			if (log4jUpgrade.isPresent()) {
+				Semver log4jVersion = log4jUpgrade.get();
+				Semver log4jBoundary = new Semver("2.8.1");
+
+				if (log4jVersion.compareTo(log4jBoundary) >= 0) {
+					profile.set("logging", OrnitheMeta.database.getManifest(generation).getLoggingConfig("17w15a"));
+				}
+			}
+		}
 
 		return profile;
 	}

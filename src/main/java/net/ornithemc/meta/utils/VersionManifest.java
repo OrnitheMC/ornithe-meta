@@ -21,6 +21,8 @@ package net.ornithemc.meta.utils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIncludeProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vdurmont.semver4j.Semver;
 import net.ornithemc.meta.OrnitheMeta;
 import org.apache.commons.io.IOUtils;
@@ -104,6 +106,25 @@ public class VersionManifest {
 	public Semver normalize(String id) {
 		VersionDetails details = versionDetails(id);
 		return details == null ? null : new Semver(details.normalizedVersion);
+	}
+
+	public JsonNode getLoggingConfig(String id) {
+		int index = indexOf(id);
+
+		if (index < 0) {
+			return null;
+		}
+
+		Version version = versions.get(index);
+
+		try {
+			String json = IOUtils.toString(new URL(version.url), StandardCharsets.UTF_8);
+			ObjectNode obj = OrnitheMeta.MAPPER.readValue(json, ObjectNode.class);
+
+			return obj.get("logging");
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	public static class Version {
