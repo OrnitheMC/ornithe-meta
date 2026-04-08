@@ -18,7 +18,7 @@
 
 package net.ornithemc.meta.utils;
 
-import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.Version;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -52,13 +52,13 @@ public class MavenMetadataParser {
 		this.require = require;
 	}
 
-	public <T extends BaseVersion> List<T> getVersions(Function<String, T> function) throws IOException, XMLStreamException {
+	public <T extends Version> List<T> getVersions(Function<String, T> function) throws IOException, XMLStreamException {
 		return getVersions(function, list -> {
 			if (!list.isEmpty()) list.get(0).setStable(true);
 		});
 	}
 
-	public <T extends BaseVersion> List<T> getVersions(Function<String, T> function, StableVersionIdentifier stableIdentifier) throws IOException, XMLStreamException {
+	public <T extends Version> List<T> getVersions(Function<String, T> function, StableVersionIdentifier stableIdentifier) throws IOException, XMLStreamException {
 		List<T> versions = new ArrayList<>();
 
 		try {
@@ -88,7 +88,7 @@ public class MavenMetadataParser {
 			// Read a file containing a new line separated list of versions that should not be marked as stable.
 			List<String> unstableVersions = Files.readAllLines(unstableVersionsPath);
 			versions.stream()
-					.filter(v -> !unstableVersions.contains(v.getVersion()))
+					.filter(v -> !unstableVersions.contains(v.id()))
 					.findFirst()
 					.ifPresent(v -> v.setStable(true));
 		} else {
@@ -99,7 +99,7 @@ public class MavenMetadataParser {
 	}
 	
 	public interface StableVersionIdentifier {
-		void process(List<? extends BaseVersion> versions);
+		void process(List<? extends Version> versions);
 	}
 
 }

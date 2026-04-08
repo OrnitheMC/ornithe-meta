@@ -18,20 +18,20 @@
 
 package net.ornithemc.meta.web.models;
 
-public class MavenVersion extends BaseVersion {
+public class MavenVersion extends Version {
 
-	String maven;
+	public final String maven;
+
+	public MavenVersion(String maven) {
+		this(maven, false);
+	}
 
 	public MavenVersion(String maven, boolean stable) {
 		super(maven.split(":")[2], stable);
 		this.maven = maven;
 	}
 
-	public MavenVersion(String maven) {
-		this(maven, false);
-	}
-
-	public String getMaven() {
+	public String mavenNotation() {
 		return maven;
 	}
 }

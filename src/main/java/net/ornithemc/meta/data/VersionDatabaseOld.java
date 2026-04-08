@@ -21,8 +21,9 @@ package net.ornithemc.meta.data;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.utils.MavenMetadataParser;
 import net.ornithemc.meta.utils.VersionManifest;
-import net.ornithemc.meta.web.models.BaseVersion;
-import net.ornithemc.meta.web.models.MavenBuildVersion;
+import net.ornithemc.meta.web.models.Version;
+import net.ornithemc.meta.web.models.GameVersion;
+import net.ornithemc.meta.web.models.MavenGameVersion;
 import net.ornithemc.meta.web.models.MavenUrlVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
@@ -31,7 +32,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class VersionDatabaseOld {
@@ -42,9 +45,9 @@ public class VersionDatabaseOld {
 	public static final MavenMetadataParser LOADER_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-loader");
 	public static final MavenMetadataParser INSTALLER_PARSER = new MavenMetadataParser(ORNITHE_MAVEN_URL, "net.ornithemc", "ornithe-installer-old");
 
-	public List<BaseVersion> game;
-	public List<MavenVersion> calamus;
-	private List<MavenBuildVersion> loader;
+	public List<GameVersion> game;
+	public List<MavenGameVersion> calamus;
+	private List<MavenVersion> loader;
 	public List<MavenUrlVersion> installer;
 
 	private VersionDatabaseOld() {
@@ -53,9 +56,9 @@ public class VersionDatabaseOld {
 	public static VersionDatabaseOld generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabaseOld database = new VersionDatabaseOld();
-		database.calamus = CALAMUS_PARSER.getVersions(MavenVersion::new);
-		database.loader = LOADER_PARSER.getVersions(MavenBuildVersion::new, list -> {
-			for (BaseVersion version : list) {
+		database.calamus = CALAMUS_PARSER.getVersions(MavenGameVersion::new);
+		database.loader = LOADER_PARSER.getVersions(MavenVersion::new, list -> {
+			for (Version version : list) {
 				if (isPublicLoaderVersion(version)) {
 					version.setStable(true);
 					break;
@@ -76,44 +79,53 @@ public class VersionDatabaseOld {
 
 		//Sorts in the order of minecraft release dates
 		calamus = new ArrayList<>(calamus);
-		calamus.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersion())));
+		calamus.sort(Comparator.comparingInt(o -> manifest.indexOf(o.id())));
 		calamus.forEach(version -> version.setStable(true));
 
 		// Remove entries that do not match a valid mc version.
 		calamus.removeIf(o -> {
 			String iVersion;
-			if (o.getVersion().endsWith("-client") || o.getVersion().endsWith("-server")) {
-				iVersion = o.getVersion().substring(0, o.getVersion().length() - 7);
+			if (o.id().endsWith("-client") || o.id().endsWith("-server")) {
+				iVersion = o.id().substring(0, o.id().length() - 7);
 			} else {
-				iVersion = o.getVersion();
+				iVersion = o.id();
 			}
 
 			if (!manifest.contains(iVersion)) {
-				OrnitheMeta.LOGGER.info("Removing {} as it is not match an mc version (v2)", o.getVersion());
+				OrnitheMeta.LOGGER.info("Removing {} as it is not match an mc version (v2)", o.id());
 				return true;
 			}
 			return false;
 		});
 
-		List<String> minecraftVersions = new ArrayList<>();
-		for (MavenVersion gameVersion : calamus) {
-			if (!minecraftVersions.contains(gameVersion.getVersion())) {
-				minecraftVersions.add(gameVersion.getVersion());
+		Map<String, GameVersion> minecraftVersions = new LinkedHashMap<>();
+
+		for (MavenGameVersion intermediaryVersion : calamus) {
+			GameVersion gameVersion = intermediaryVersion.gameVersion();
+
+			if (gameVersion != null) {
+				minecraftVersions.compute(gameVersion.id(), (id, gv) -> {
+					if (gv == null) {
+						return gameVersion;
+					} else {
+						return gameVersion.merge(gv);
+					}
+				});
 			}
 		}
 
-		game = minecraftVersions.stream().map(s -> new BaseVersion(s, manifest.isStable(s))).collect(Collectors.toList());
+		game = minecraftVersions.values().stream().collect(Collectors.toList());
 	}
 
-	public List<MavenBuildVersion> getLoader() {
+	public List<MavenVersion> getLoader() {
 		return loader.stream().filter(VersionDatabaseOld::isPublicLoaderVersion).collect(Collectors.toList());
 	}
 	
-	private static boolean isPublicLoaderVersion(BaseVersion version) {
+	private static boolean isPublicLoaderVersion(Version version) {
 		return true;
 	}
 
-	public List<MavenBuildVersion> getAllLoader() {
+	public List<MavenVersion> getAllLoader() {
 		return Collections.unmodifiableList(loader);
 	}
 }

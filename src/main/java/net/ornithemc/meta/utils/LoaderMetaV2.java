@@ -34,7 +34,7 @@ public class LoaderMetaV2 {
 	public static final File BASE_DIR = new File("metadata");
 
 	public static JsonNode getMeta(LoaderInfoBase loaderInfo) {
-		String loaderMaven = loaderInfo.getLoader().getMaven();
+		String loaderMaven = loaderInfo.loaderVersion().mavenNotation();
 		String[] split = loaderMaven.split(":");
 		String path = String.format("%s/%s/%s", split[0].replaceAll("\\.", "/"), split[1], split[2]);
 		String filename = String.format("%s-%s.json", split[1], split[2]);

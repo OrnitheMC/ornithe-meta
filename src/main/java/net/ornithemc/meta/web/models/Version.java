@@ -20,34 +20,18 @@ package net.ornithemc.meta.web.models;
 
 import java.util.function.Predicate;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+public class Version implements Predicate<String> {
 
-public class BaseVersion implements Predicate<String> {
+	public final String version;
+	public boolean stable = false;
 
-	String version;
-	@JsonIgnore
-	String versionNoSide;
-	boolean stable = false;
-
-	public BaseVersion(String version, boolean stable) {
+	public Version(String version, boolean stable) {
 		this.version = version;
 		this.stable = stable;
 	}
 
-	public String getVersion() {
+	public String id() {
 		return version;
-	}
-
-	public String getVersionNoSide() {
-		if (versionNoSide == null) {
-			versionNoSide = version;
-
-			if (versionNoSide.endsWith("-client") || versionNoSide.endsWith("-server")) {
-				versionNoSide = versionNoSide.substring(0, versionNoSide.length() - 7);
-			}
-		}
-
-		return versionNoSide;
 	}
 
 	public boolean isStable() {
@@ -56,6 +40,19 @@ public class BaseVersion implements Predicate<String> {
 
 	public void setStable(boolean stable) {
 		this.stable = stable;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Version)) {
+			return false;
+		}
+
+		Version that = (Version) o;
+		return this.version.equals(that.version);
 	}
 
 	@Override

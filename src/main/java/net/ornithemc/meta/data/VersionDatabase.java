@@ -109,10 +109,10 @@ public class VersionDatabase {
 		return versions -> {
 			boolean foundStableVersion = false;
 
-			for (Iterator<? extends BaseVersion> it = versions.iterator(); it.hasNext(); ) {
-				BaseVersion version = it.next();
+			for (Iterator<? extends Version> it = versions.iterator(); it.hasNext(); ) {
+				Version version = it.next();
 
-				if (generation >= 2 && invalidLoaderVersionsPattern(loaderType).matcher(version.getVersion()).matches()) {
+				if (generation >= 2 && invalidLoaderVersionsPattern(loaderType).matcher(version.id()).matches()) {
 					it.remove();
 				} else if (!foundStableVersion && isPublicLoaderVersion(loaderType, version)) {
 					foundStableVersion = true;
@@ -160,18 +160,18 @@ public class VersionDatabase {
 	}
 
 	private final Int2ObjectMap<VersionManifest> manifests;
-	private final Int2ObjectMap<List<BaseVersion>> game;
-	private final Int2ObjectMap<List<MavenVersion>> intermediary;
-	private final Int2ObjectMap<List<MavenBuildGameVersion>> feather;
+	private final Int2ObjectMap<List<GameVersion>> game;
+	private final Int2ObjectMap<List<MavenGameVersion>> intermediary;
+	private final Int2ObjectMap<List<MavenGameVersionWithBuildNumber>> feather;
 	private final Int2ObjectMap<List<MavenVersion>> osl;
 	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslDependencies;
 	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslModules;
-	private final Int2ObjectMap<Map<LoaderType, List<MavenBuildVersion>>> loader;
+	private final Int2ObjectMap<Map<LoaderType, List<MavenVersion>>> loader;
 
 	public IntermediaryGenerations intermediaryGenerations;
-	public List<MavenBuildGameVersion> raven;
-	public List<MavenBuildGameVersion> sparrow;
-	public List<MavenBuildGameVersion> nests;
+	public List<MavenGameVersionWithBuildNumber> raven;
+	public List<MavenGameVersionWithBuildNumber> sparrow;
+	public List<MavenGameVersionWithBuildNumber> nests;
 	public List<MavenUrlVersion> installer;
 	public List<LibraryUpgrade> libraryUpgrades;
 
@@ -191,28 +191,30 @@ public class VersionDatabase {
 		VersionDatabase database = new VersionDatabase();
 		config = ConfigV3.load();
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
-			database.manifests.put(generation, VersionManifest.forGen(generation));
-			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
-			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
+			VersionManifest manifest = VersionManifest.forGen(generation);
+			database.manifests.put(generation, manifest);
+			database.game.put(generation, manifest.getVersions().stream().map(VersionManifest.Version::id).map(GameVersion::new).collect(Collectors.toList()));
+			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenGameVersion::new));
+			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenGameVersionWithBuildNumber::new));
 			database.osl.put(generation, oslMetadataParser(generation).getVersions(MavenVersion::new));
 			database.oslDependencies.put(generation, new HashMap<>());
 			database.oslModules.put(generation, new HashMap<>());
 			for (MavenVersion version : database.osl.get(generation)) {
-				database.oslDependencies.get(generation).put(version.getVersion(), oslPomParser(generation).getDependencies(MavenVersion::new, version.getVersion(), v -> {
-					return v.getMaven().startsWith("net.ornithemc.osl");
+				database.oslDependencies.get(generation).put(version.id(), oslPomParser(generation).getDependencies(MavenVersion::new, version.id(), v -> {
+					return v.mavenNotation().startsWith("net.ornithemc.osl");
 				}));
 			}
 			for (String module : oslModules(generation)) {
 				database.oslModules.get(generation).put(module, oslModuleMetadataParser(generation, module).getVersions(MavenVersion::new));
 			}
 			database.loader.put(generation, new EnumMap<>(LoaderType.class));
-			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
-			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenBuildVersion::new, filterLoaderVersions(generation, LoaderType.QUILT)));
+			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
+			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenVersion::new, filterLoaderVersions(generation, LoaderType.QUILT)));
 		}
 		database.intermediaryGenerations = new IntermediaryGenerations(config.latestIntermediaryGeneration, config.stableIntermediaryGeneration);
-		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
-		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
-		database.nests = NESTS_METADATA_PARSER.getVersions(MavenBuildGameVersion::new);
+		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenGameVersionWithBuildNumber::new);
+		database.sparrow = SPARROW_METADATA_PARSER.getVersions(MavenGameVersionWithBuildNumber::new);
+		database.nests = NESTS_METADATA_PARSER.getVersions(MavenGameVersionWithBuildNumber::new);
 		database.installer = INSTALLER_METADATA_PARSER.getVersions(MavenUrlVersion::new);
 		database.libraryUpgrades = LibraryUpgradesV3.reload();
 		database.loadMcData();
@@ -220,7 +222,7 @@ public class VersionDatabase {
 		return database;
 	}
 
-	private static boolean isPublicLoaderVersion(LoaderType type, BaseVersion version) {
+	private static boolean isPublicLoaderVersion(LoaderType type, Version version) {
 		return true;
 	}
 
@@ -232,33 +234,48 @@ public class VersionDatabase {
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			final int gen = generation;
 			final VersionManifest manifest = manifests.get(generation);
-			intermediary.compute(generation, (key, value) -> {
-				// Sorts in the order of minecraft release dates
+			game.compute(generation, (key, value) -> {
 				value = new ArrayList<>(value);
-				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersionNoSide())));
+
+				// Remove entries without a matching intermediary version
+				value.removeIf(o -> {
+					return intermediary.get(gen).stream().map(MavenGameVersion::gameVersion).noneMatch(intermediary -> o.id().equals(intermediary.id()));
+				});
+
+				// Sorts in the order of minecraft release dates
+				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.id())));
 				value.forEach(version -> version.setStable(isIntermediaryStable(gen, version)));
+
+				return value;
+			});
+			intermediary.compute(generation, (key, value) -> {
+				value = new ArrayList<>(value);
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
-					if (!manifest.contains(o.getVersionNoSide())) {
-						OrnitheMeta.LOGGER.info("Removing {} from intermediary v3{} as it does not match a mc version", o.getVersion(), (gen < 1 ? "" : " gen" + gen));
+					if (!manifest.contains(o.gameVersion().id())) {
+						OrnitheMeta.LOGGER.info("Removing {} from v3 intermediary gen{} as {} does not appear in the versions manifest", o.id(), gen, o.gameVersion().id());
 						return true;
 					}
 					return false;
 				});
+
+				// Sorts in the order of minecraft release dates
+				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.gameVersion().id())));
+				value.forEach(version -> version.setStable(isIntermediaryStable(gen, version)));
 
 				return value;
 			});
 			feather.compute(generation, (key, value) -> {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
-				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersionNoSide())));
+				value.sort(Comparator.comparingInt(version -> manifest.indexOf(version.gameVersion().id())));
 				value.forEach(version -> version.setStable(true));
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
-					if (!manifest.contains(o.getVersionNoSide())) {
-						OrnitheMeta.LOGGER.info("Removing {} from v3 feather gen{} as it does not match a mc version", o.getGameVersion(), gen);
+					if (!manifest.contains(o.gameVersion().id())) {
+						OrnitheMeta.LOGGER.info("Removing {} from v3 feather gen{} as {} does not appear in the versions manifest", o.id(), gen, o.gameVersion().id());
 						return true;
 					}
 					return false;
@@ -266,35 +283,26 @@ public class VersionDatabase {
 
 				return value;
 			});
-
-			List<String> minecraftVersions = new ArrayList<>();
-			for (MavenVersion gameVersion : intermediary.get(generation)) {
-				if (!minecraftVersions.contains(gameVersion.getVersionNoSide())) {
-					minecraftVersions.add(gameVersion.getVersionNoSide());
-				}
-			}
-
-			game.put(generation, minecraftVersions.stream().map(s -> new BaseVersion(s, manifest.isStable(s))).collect(Collectors.toList()));
 		}
 
-		Function<String, Predicate<MavenBuildGameVersion>> p = src -> {
+		Function<String, Predicate<MavenGameVersionWithBuildNumber>> p = src -> {
 			return o -> {
 				for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
-					if (manifests.get(generation).contains(o.getVersionNoSide())) {
+					if (manifests.get(generation).contains(o.gameVersion().id())) {
 						return false;
 					}
 				}
-				OrnitheMeta.LOGGER.info("Removing {} from {} as it does not match a mc version", o.getGameVersion(), src);
+				OrnitheMeta.LOGGER.info("Removing {} from {} as it does not match a mc version", o.gameVersion().id(), src);
 				return true;
 			};
 		};
-		Comparator<MavenBuildGameVersion> c = (v1, v2) -> {
+		Comparator<MavenGameVersionWithBuildNumber> c = (v1, v2) -> {
 			int i1 = Integer.MAX_VALUE;
 			int i2 = Integer.MAX_VALUE;
 			for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 				VersionManifest manifest = manifests.get(generation);
-				i1 = Math.min(i1, manifest.indexOf(v1.getVersionNoSide()));
-				i2 = Math.min(i2, manifest.indexOf(v2.getVersionNoSide()));
+				i1 = Math.min(i1, manifest.indexOf(v1.gameVersion().id()));
+				i2 = Math.min(i2, manifest.indexOf(v2.gameVersion().id()));
 			}
 			return Integer.compare(i1, i2);
 		};
@@ -314,23 +322,27 @@ public class VersionDatabase {
 		nests.removeIf(p.apply("v3 nests"));
 	}
 
-	private boolean isIntermediaryStable(int generation, MavenVersion version) {
-		return config.unstableIntermediaryVersions.stream().noneMatch(uv -> uv.test(generation, version.getVersionNoSide()));
+	private boolean isIntermediaryStable(int generation, MavenGameVersion version) {
+		return isIntermediaryStable(generation, version.gameVersion());
+	}
+
+	private boolean isIntermediaryStable(int generation, GameVersion version) {
+		return config.unstableIntermediaryVersions.stream().noneMatch(uv -> uv.test(generation, version.id()));
 	}
 
 	public static VersionManifest getManifest(int generation) {
 		return OrnitheMeta.database == null ? VersionManifest.forGen(generation) : OrnitheMeta.database.manifests.get(generation);
 	}
 
-	public List<BaseVersion> getGame(int generation) {
+	public List<GameVersion> getGame(int generation) {
 		return game.get(generation);
 	}
 
-	public List<MavenVersion> getIntermediary(int generation) {
+	public List<MavenGameVersion> getIntermediary(int generation) {
 		return intermediary.get(generation);
 	}
 
-	public List<MavenBuildGameVersion> getFeather(int generation) {
+	public List<MavenGameVersionWithBuildNumber> getFeather(int generation) {
 		return feather.get(generation);
 	}
 
@@ -346,11 +358,11 @@ public class VersionDatabase {
 		return oslModules.get(generation).get(module);
 	}
 
-	public List<MavenBuildVersion> getLoader(int generation, LoaderType type) {
+	public List<MavenVersion> getLoader(int generation, LoaderType type) {
 		return loader.get(generation).get(type).stream().filter(v -> isPublicLoaderVersion(type, v)).collect(Collectors.toList());
 	}
 
-	public List<MavenBuildVersion> getAllLoader(int generation, LoaderType type) {
+	public List<MavenVersion> getAllLoader(int generation, LoaderType type) {
 		return Collections.unmodifiableList(loader.get(generation).get(type));
 	}
 }

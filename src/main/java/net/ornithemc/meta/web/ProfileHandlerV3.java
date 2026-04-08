@@ -26,6 +26,9 @@ import com.vdurmont.semver4j.Semver;
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.utils.VersionManifest;
+import net.ornithemc.meta.web.models.GameEnvironment;
+import net.ornithemc.meta.web.models.GameVersion;
+import net.ornithemc.meta.web.models.InstallationInfoV3;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
 import org.apache.commons.io.IOUtils;
@@ -56,47 +59,47 @@ public class ProfileHandlerV3 {
 	}
 
 	private static void setup(LoaderType type) {
-		EndpointsV3.fileDownload(type, "profile", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::profileJson);
-		EndpointsV3.fileDownload(type, "profile", "zip", ProfileHandlerV3::getZipFileName, ProfileHandlerV3::profileZip);
+		EndpointsV3.fileDownload(type, GameEnvironment.CLIENT, "profile", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::profileJson);
+		EndpointsV3.fileDownload(type, GameEnvironment.CLIENT, "profile", "zip", ProfileHandlerV3::getZipFileName, ProfileHandlerV3::profileZip);
 
-		EndpointsV3.fileDownload(type, "server", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::serverJson);
+		EndpointsV3.fileDownload(type, GameEnvironment.SERVER, "server", "json", ProfileHandlerV3::getJsonFileName, ProfileHandlerV3::serverJson);
 	}
 
-	private static String getJsonFileName(int generation, LoaderInfoV3 info) {
+	private static String getJsonFileName(int generation, InstallationInfoV3 info) {
 		return getJsonFileName(generation, info, "json");
 	}
 
-	private static String getZipFileName(int generation, LoaderInfoV3 info) {
+	private static String getZipFileName(int generation, InstallationInfoV3 info) {
 		return getJsonFileName(generation, info, "zip");
 	}
 
-	private static String getJsonFileName(int generation, LoaderInfoV3 info, String ext) {
+	private static String getJsonFileName(int generation, InstallationInfoV3 info, String ext) {
 		return String.format("%s-loader-%s-%s-ornithe-gen%d.%s",
-				info.getLoaderType().getName(),
-				info.getLoader().getVersion(),
-				info.getIntermediary().getVersion(),
+				info.loaderInfo().loaderType().getName(),
+				info.loaderInfo().loaderVersion().id(),
+				info.gameVersion().id(),
 				generation,
 				ext);
 	}
 
-	private static CompletableFuture<InputStream> profileJson(int generation, LoaderInfoV3 info) {
-		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info, "client"), EXECUTOR);
+	private static CompletableFuture<InputStream> profileJson(int generation, InstallationInfoV3 info) {
+		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info), EXECUTOR);
 	}
 
-	private static CompletableFuture<InputStream> serverJson(int generation, LoaderInfoV3 info) {
-		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info, "server"), EXECUTOR);
+	private static CompletableFuture<InputStream> serverJson(int generation, InstallationInfoV3 info) {
+		return CompletableFuture.supplyAsync(() -> getProfileJsonStream(generation, info), EXECUTOR);
 	}
 
-	private static CompletableFuture<InputStream> profileZip(int generation, LoaderInfoV3 info) {
+	private static CompletableFuture<InputStream> profileZip(int generation, InstallationInfoV3 info) {
 		return profileJson(generation, info)
 				.thenApply(inputStream -> packageZip(generation, info, inputStream));
 	}
 
-	private static InputStream packageZip(int generation, LoaderInfoV3 info, InputStream profileJson) {
+	private static InputStream packageZip(int generation, InstallationInfoV3 info, InputStream profileJson) {
 		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
-				info.getLoaderType().getName(),
-				info.getLoader().getVersion(),
-				info.getIntermediary().getVersion(),
+				info.loaderInfo().loaderType().getName(),
+				info.loaderInfo().loaderVersion().id(),
+				info.gameVersion().id(),
 				generation);
 
 		try {
@@ -120,36 +123,40 @@ public class ProfileHandlerV3 {
 		}
 	}
 
-	private static InputStream getProfileJsonStream(int generation, LoaderInfoV3 info, String side) {
-		JsonNode jsonNode = buildProfileJson(generation, info, side);
+	private static InputStream getProfileJsonStream(int generation, InstallationInfoV3 info) {
+		JsonNode jsonNode = buildProfileJson(generation, info);
 		return new ByteArrayInputStream(jsonNode.toString().getBytes());
 	}
 
 	//This is based of the installer code.
-	private static JsonNode buildProfileJson(int generation, LoaderInfoV3 info, String side) {
-		JsonNode launcherMeta = info.getLauncherMeta();
+	private static JsonNode buildProfileJson(int generation, InstallationInfoV3 info) {
+		GameVersion game = info.gameVersion();
+		LoaderInfoV3 loader = info.loaderInfo();
 
 		String profileName = String.format("%s-loader-%s-%s-ornithe-gen%d",
-				info.getLoaderType().getName(),
-				info.getLoader().getVersion(),
-				info.getGame(side),
+				loader.loaderType().getName(),
+				loader.loaderVersion().id(),
+				game.id(),
 				generation);
 
+		JsonNode launcherMeta = loader.getLauncherMeta();
 		JsonNode librariesNode = launcherMeta.get("libraries");
 		// Build the libraries array with the existing libs + loader and intermediary
 		ArrayNode libraries = (ArrayNode) librariesNode.get("common");
-		libraries.add(getLibrary(info.getIntermediary().getMaven(), VersionDatabase.ORNITHE_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), info.getLoaderType().getMavenUrl()));
+		if (info.intermediaryVersion() != null) {
+			libraries.add(getLibrary(info.intermediaryVersion().mavenNotation(), VersionDatabase.ORNITHE_MAVEN_URL));
+		}
+		libraries.add(getLibrary(info.loaderInfo().loaderVersion().mavenNotation(), info.loaderInfo().loaderType().getMavenUrl()));
 
-		if (librariesNode.has(side)) {
-			libraries.addAll((ArrayNode) librariesNode.get(side));
+		if (librariesNode.has(game.environment().id())) {
+			libraries.addAll((ArrayNode) librariesNode.get(game.environment().id()));
 		}
 
 		String currentTime = ISO_8601.format(new Date());
 
 		ObjectNode profile = OrnitheMeta.MAPPER.createObjectNode();
 		profile.put("id", profileName);
-		profile.put("inheritsFrom", String.format("%s-vanilla", info.getGame(side)));
+		profile.put("inheritsFrom", String.format("%s-vanilla", game.id()));
 		profile.put("releaseTime", currentTime);
 		profile.put("time", currentTime);
 		profile.put("type", "release");
@@ -158,14 +165,14 @@ public class ProfileHandlerV3 {
 		String mainClass;
 
 		if (mainClassNode.isObject()) {
-			mainClass = mainClassNode.get(side).asText();
+			mainClass = mainClassNode.get(game.environment().id()).asText();
 		} else {
 			mainClass = mainClassNode.asText();
 		}
 
 		profile.put("mainClass", mainClass);
 
-		if ("server".equals(side) && launcherMeta.has("mainClass") && launcherMeta.get("mainClass").has("serverLauncher")) {
+		if (game.environment() == GameEnvironment.SERVER && launcherMeta.has("mainClass") && launcherMeta.get("mainClass").has("serverLauncher")) {
 			// Add the server launch main class
 			profile.put("launcherMainClass", launcherMeta.get("mainClass").get("serverLauncher").asText());
 		}
@@ -177,21 +184,21 @@ public class ProfileHandlerV3 {
 
 		if (generation >= 2) {
 			// value not needed for FLoader, but QLoader requires the value to be true
-			jvmArgs.add(info.getLoaderType().getJvmArguments().fixPackageAccess(true));
+			jvmArgs.add(loader.loaderType().getJvmArguments().fixPackageAccess(true));
 		}
-		jvmArgs.add(info.getLoaderType().getJvmArguments().gameVersion(info.getGame(side)));
+		jvmArgs.add(loader.loaderType().getJvmArguments().gameVersion(game.id()));
 
 		profile.set("arguments", arguments);
 		profile.set("libraries", libraries);
 
 		VersionManifest manifest = VersionDatabase.getManifest(generation);
 
-		Semver version = manifest.normalize(info.getGame(side));
+		Semver version = manifest.normalize(game.id());
 		Semver boundary = manifest.normalize("17w15a");
 
-		if (version.compareTo(boundary) < 0 && "client".equals(side)) {
+		if (version.compareTo(boundary) < 0 && game.environment() == GameEnvironment.CLIENT) {
 			Optional<Semver> log4jUpgrade = OrnitheMeta.database.libraryUpgrades.stream()
-				.filter(l -> l.test(generation, info.getGame(side)))
+				.filter(l -> l.test(generation, game.id()))
 				.filter(l -> l.name.split("[:]")[1].equals("log4j-core"))
 				.findFirst()
 				.map(l -> new Semver(l.name.split("[:]")[2]));

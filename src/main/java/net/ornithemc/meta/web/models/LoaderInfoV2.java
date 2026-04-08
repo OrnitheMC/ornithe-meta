@@ -24,13 +24,13 @@ import org.jetbrains.annotations.Nullable;
 
 public class LoaderInfoV2 implements LoaderInfoBase {
 
-	MavenBuildVersion loader;
-	MavenVersion calamus;
+	public final MavenVersion loader;
+	public final MavenVersion calamus;
 
 	@Nullable
 	JsonNode launcherMeta;
 
-	public LoaderInfoV2(MavenBuildVersion loader, MavenVersion calamus) {
+	public LoaderInfoV2(MavenVersion loader, MavenVersion calamus) {
 		this.loader = loader;
 		this.calamus = calamus;
 	}
@@ -41,16 +41,16 @@ public class LoaderInfoV2 implements LoaderInfoBase {
 	}
 
 	@Override
-	public LoaderType getLoaderType() {
+	public LoaderType loaderType() {
 		return LoaderType.ORNITHE;
 	}
 
 	@Override
-	public MavenBuildVersion getLoader() {
+	public MavenVersion loaderVersion() {
 		return loader;
 	}
 
-	public MavenVersion getCalamus() {
+	public MavenVersion calamusVersion() {
 		return calamus;
 	}
 

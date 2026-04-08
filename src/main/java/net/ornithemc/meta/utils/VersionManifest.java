@@ -28,6 +28,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vdurmont.semver4j.Semver;
 
 import net.ornithemc.meta.OrnitheMeta;
+import net.ornithemc.meta.web.models.GameEnvironment;
 
 @JsonIgnoreProperties({"$schema", "latest"})
 public class VersionManifest {
@@ -277,6 +279,10 @@ public class VersionManifest {
 		});
 	}
 
+	public List<Version> getVersions() {
+		return Collections.unmodifiableList(this.versions);
+	}
+
 	public boolean contains(String id) {
 		return versions.stream().anyMatch(version -> version.id.equals(id));
 	}
@@ -298,6 +304,17 @@ public class VersionManifest {
 	public Semver normalize(String id) {
 		VersionDetails details = versionDetails(id);
 		return details == null ? null : new Semver(details.normalizedVersion);
+	}
+
+	public GameEnvironment getEnvironment(String id) {
+		VersionDetails details = versionDetails(id);
+		if (details == null || (!details.client && !details.server)) {
+			return null;
+		}
+		if (details.client && details.server) {
+			return GameEnvironment.BOTH;
+		}
+		return details.client ? GameEnvironment.CLIENT : GameEnvironment.SERVER;
 	}
 
 	public JsonNode getLoggingConfig(String id) {
@@ -355,11 +372,13 @@ public class VersionManifest {
 		}
 	}
 
-	@JsonIncludeProperties({"id", "normalizedVersion"})
+	@JsonIncludeProperties({"id", "normalizedVersion", "client", "server"})
 	public static class VersionDetails {
 
 		public String id;
 		public String normalizedVersion;
+		public boolean client;
+		public boolean server;
 
 	}
 }

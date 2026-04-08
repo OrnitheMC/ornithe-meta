@@ -21,15 +21,17 @@ package net.ornithemc.meta.web;
 import io.javalin.core.util.Header;
 import io.javalin.http.Context;
 import net.ornithemc.meta.OrnitheMeta;
-import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.GameVersion;
 import net.ornithemc.meta.web.models.LoaderInfoV2;
-import net.ornithemc.meta.web.models.MavenBuildVersion;
+import net.ornithemc.meta.web.models.MavenGameVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -43,7 +45,7 @@ public class EndpointsV2 {
 		WebServer.jsonGet("/v2/versions", () -> OrnitheMeta.databaseOld);
 
 		WebServer.jsonGet("/v2/versions/game", () -> OrnitheMeta.databaseOld.game);
-		WebServer.jsonGet("/v2/versions/game/calamus", () -> compatibleGameVersions(OrnitheMeta.databaseOld.calamus, BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
+		WebServer.jsonGet("/v2/versions/game/calamus", () -> compatibleGameVersions(OrnitheMeta.databaseOld.calamus));
 
 		WebServer.jsonGet("/v2/versions/calamus", () -> OrnitheMeta.databaseOld.calamus);
 		WebServer.jsonGet("/v2/versions/calamus/:game_version", context -> filter(context, OrnitheMeta.databaseOld.calamus));
@@ -92,8 +94,8 @@ public class EndpointsV2 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = OrnitheMeta.databaseOld.getAllLoader().stream()
-			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
+		MavenVersion loader = OrnitheMeta.databaseOld.getAllLoader().stream()
+			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.id()))
 			.findFirst().orElse(null);
 
 		MavenVersion mappings = OrnitheMeta.databaseOld.calamus.stream()
@@ -127,23 +129,20 @@ public class EndpointsV2 {
 
 		List<LoaderInfoV2> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : OrnitheMeta.databaseOld.getLoader()){
+		for(MavenVersion loader : OrnitheMeta.databaseOld.getLoader()){
 			infoList.add(new LoaderInfoV2(loader, mappings).populateMeta());
 		}
 		return infoList;
 	}
 
-	private static <T extends BaseVersion> List<BaseVersion> compatibleGameVersions(List<T> list, Function<T, String> gameVersionSupplier, Function<T, BaseVersion> baseVersionSupplier){
-		List<BaseVersion> versions = new ArrayList<>();
-		Predicate<String> contains = s -> versions.stream().anyMatch(baseVersion -> baseVersion.getVersion().equals(s));
+	private static List<GameVersion> compatibleGameVersions(List<? extends MavenGameVersion> versions) {
+		Set<GameVersion> gameVersions = new LinkedHashSet<>();
 
-		for(T entry : list){
-			if (!contains.test(gameVersionSupplier.apply(entry))){
-				versions.add(baseVersionSupplier.apply(entry));
-			}
+		for(MavenGameVersion version : versions){
+			gameVersions.add(version.gameVersion());
 		}
 
-		return versions;
+		return new ArrayList<>(gameVersions);
 	}
 
 	public static void fileDownload(String path, String ext, Function<LoaderInfoV2, String> fileNameFunction, Function<LoaderInfoV2, CompletableFuture<InputStream>> streamSupplier) {

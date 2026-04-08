@@ -25,20 +25,23 @@ import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
 import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.LibraryUpgradesV3.LibraryUpgrade;
-import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.GameEnvironment;
+import net.ornithemc.meta.web.models.GameVersion;
+import net.ornithemc.meta.web.models.InstallationInfoV3;
 import net.ornithemc.meta.web.models.Library;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
-import net.ornithemc.meta.web.models.MavenBuildGameVersion;
-import net.ornithemc.meta.web.models.MavenBuildVersion;
+import net.ornithemc.meta.web.models.MavenGameVersion;
 import net.ornithemc.meta.web.models.MavenVersion;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -58,9 +61,9 @@ public class EndpointsV3 {
 		jsonGet("/intermediary_generations", () -> OrnitheMeta.database.intermediaryGenerations);
 
 		jsonGetS("/game", generation -> () -> OrnitheMeta.database.getGame(generation));
-		jsonGetS("/game/intermediary", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getIntermediary(generation), BaseVersion::getVersion, v -> new BaseVersion(v.getVersion(), v.isStable())));
-		jsonGetS("/game/feather", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getFeather(generation), MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
-		jsonGet("/game/nests", () -> compatibleGameVersions(OrnitheMeta.database.nests, MavenBuildGameVersion::getGameVersion, v -> new BaseVersion(v.getGameVersion(), v.isStable())));
+		jsonGetS("/game/intermediary", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getIntermediary(generation)));
+		jsonGetS("/game/feather", generation -> () -> compatibleGameVersions(OrnitheMeta.database.getFeather(generation)));
+		jsonGet("/game/nests", () -> compatibleGameVersions(OrnitheMeta.database.nests));
 
 		jsonGetS("/intermediary", generation -> () -> OrnitheMeta.database.getIntermediary(generation));
 		jsonGetF("/intermediary/:game_version", generation -> context -> filter(context, OrnitheMeta.database.getIntermediary(generation)));
@@ -131,7 +134,7 @@ public class EndpointsV3 {
 	}
 
 	private static <T> List<T> withLimitSkip(Context context, List<T> list) {
-		if(list == null){
+		if(list == null) {
 			return Collections.emptyList();
 		}
 		int limit = context.queryParam("limit", Integer.class, "0").check(i -> i >= 0).get();
@@ -189,58 +192,41 @@ public class EndpointsV3 {
 		String gameVersion = context.pathParam("game_version");
 		String loaderVersion = context.pathParam("loader_version");
 
-		MavenBuildVersion loader = OrnitheMeta.database.getAllLoader(generation, type).stream()
-			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.getVersion()))
-			.findFirst().orElse(null);
-
-		MavenVersion mappings = OrnitheMeta.database.getIntermediary(generation).stream()
-			.filter(t -> t.test(gameVersion))
+		MavenVersion loader = OrnitheMeta.database.getAllLoader(generation, type).stream()
+			.filter(mavenBuildVersion -> loaderVersion.equals(mavenBuildVersion.id()))
 			.findFirst().orElse(null);
 
 		if (loader == null) {
 			context.status(400);
 			return "no loader version found for " + gameVersion;
 		}
-		if (mappings == null) {
-			context.status(400);
-			return "no mappings version found for " + gameVersion;
-		}
-		return new LoaderInfoV3(type, loader, mappings).populateMeta();
+		
+
+		return new LoaderInfoV3(type, loader).populateMeta();
 	}
 
 	private static List<?> getLoaderInfoAll(Context context, int generation, LoaderType type) {
 		if (!context.pathParamMap().containsKey("game_version")) {
 			return null;
 		}
-		String gameVersion = context.pathParam("game_version");
-
-		MavenVersion mappings = OrnitheMeta.database.getIntermediary(generation).stream()
-			.filter(t -> t.test(gameVersion))
-			.findFirst().orElse(null);
-
-		if(mappings == null){
-			return Collections.emptyList();
-		}
 
 		List<LoaderInfoV3> infoList = new ArrayList<>();
 
-		for(MavenBuildVersion loader : OrnitheMeta.database.getLoader(generation, type)){
-			infoList.add(new LoaderInfoV3(type, loader, mappings).populateMeta());
+		for(MavenVersion loader : OrnitheMeta.database.getLoader(generation, type)) {
+			infoList.add(new LoaderInfoV3(type, loader).populateMeta());
 		}
+
 		return infoList;
 	}
 
-	private static <T extends BaseVersion> List<BaseVersion> compatibleGameVersions(List<T> list, Function<T, String> gameVersionSupplier, Function<T, BaseVersion> baseVersionSupplier){
-		List<BaseVersion> versions = new ArrayList<>();
-		Predicate<String> contains = s -> versions.stream().anyMatch(baseVersion -> baseVersion.getVersion().equals(s));
+	private static List<GameVersion> compatibleGameVersions(List<? extends MavenGameVersion> versions) {
+		Set<GameVersion> gameVersions = new LinkedHashSet<>();
 
-		for(T entry : list){
-			if (!contains.test(gameVersionSupplier.apply(entry))){
-				versions.add(baseVersionSupplier.apply(entry));
-			}
+		for(MavenGameVersion version : versions) {
+			gameVersions.add(version.gameVersion());
 		}
 
-		return versions;
+		return new ArrayList<>(gameVersions);
 	}
 
 	private static List<?> getOslDependencyInfo(Context context, int generation) {
@@ -278,7 +264,7 @@ public class EndpointsV3 {
 			String baseVersion = context.pathParam("base_version");
 
 			versions = versions.stream()
-					.filter(v -> v.getVersion().startsWith(baseVersion))
+					.filter(v -> v.id().startsWith(baseVersion + "+"))
 					.collect(Collectors.toList());
 		}
 
@@ -287,7 +273,7 @@ public class EndpointsV3 {
 					String minGameVersion = null;
 					String maxGameVersion = null;
 
-					String buildVersion = v.getVersion();
+					String buildVersion = v.id();
 					String[] parts = buildVersion.split("mc");
 
 					if (parts.length == 2) { // old format: <base version>+mc<min mc version>#<max mc version>
@@ -318,20 +304,23 @@ public class EndpointsV3 {
 		return versions;
 	}
 
-	public static void fileDownload(LoaderType type, String path, String ext, BiFunction<Integer, LoaderInfoV3, String> fileNameFunction, BiFunction<Integer, LoaderInfoV3, CompletableFuture<InputStream>> streamSupplier) {
+	public static void fileDownload(LoaderType type, GameEnvironment environment, String path, String ext, BiFunction<Integer, InstallationInfoV3, String> fileNameFunction, BiFunction<Integer, InstallationInfoV3, CompletableFuture<InputStream>> streamSupplier) {
 		jsonGetH("/" + type.getName() + "-loader/:game_version/:loader_version/" + path + "/" + ext, generation -> ctx -> {
 			Object obj = getLoaderInfo(ctx, generation, type);
 
 			if (obj instanceof String) {
 				ctx.result((String) obj);
 			} else if (obj instanceof LoaderInfoV3) {
-				LoaderInfoV3 versionInfo = (LoaderInfoV3) obj;
+				LoaderInfoV3 loaderInfo = (LoaderInfoV3) obj;
+				GameVersion gameVersion = new GameVersion(ctx.pathParam("game_version")).setEnvironment(environment);
+				MavenGameVersion intermediaryVersion = filter(ctx, OrnitheMeta.database.getIntermediary(generation)).stream().findFirst().orElse(null);
+				InstallationInfoV3 installationInfo = new InstallationInfoV3(loaderInfo, gameVersion, intermediaryVersion);
 
-				CompletableFuture<InputStream> streamFuture = streamSupplier.apply(generation, versionInfo);
+				CompletableFuture<InputStream> streamFuture = streamSupplier.apply(generation, installationInfo);
 
 				if (ext.equals("zip")) {
 					//Set the filename to download
-					ctx.header(Header.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", fileNameFunction.apply(generation, versionInfo)));
+					ctx.header(Header.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", fileNameFunction.apply(generation, installationInfo)));
 
 					ctx.contentType("application/zip");
 				} else {

@@ -16,32 +16,29 @@
  * limitations under the License.
  */
 
-package net.ornithemc.meta.utils;
+package net.ornithemc.meta.web.models;
 
-public class FeatherVersionParser {
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
-	private String mappingsVersion;
-	private String minecraftVersion;
+public class MavenGameVersion extends MavenVersion {
 
-	private String version;
+	public String gameVersion;
+	@JsonIgnore
+	GameVersion _gameVersion;
 
-	public FeatherVersionParser(String version) {
-		this.version = version;
+	public MavenGameVersion(String maven) {
+		super(maven);
 
-		this.minecraftVersion = version.substring(0, version.lastIndexOf('+'));
-		this.mappingsVersion = version.substring(version.lastIndexOf('.') + 1);
+		_gameVersion = new GameVersion(version, stable);
+		gameVersion = _gameVersion.id();
 	}
 
-	public String getMappingsVersion() {
-		return mappingsVersion;
-	}
-
-	public String getMinecraftVersion() {
-		return minecraftVersion;
+	public GameVersion gameVersion() {
+		return _gameVersion;
 	}
 
 	@Override
-	public String toString() {
-		return version;
+	public boolean test(String s) {
+		return gameVersion.equals(s);
 	}
 }

@@ -18,29 +18,27 @@
 
 package net.ornithemc.meta.web.models;
 
-public class MavenBuildVersion extends MavenVersion {
+public class InstallationInfoV3 {
 
-	String separator;
-	int build;
+	GameVersion gameVersion;
+	LoaderInfoV3 loaderInfo;
+	MavenVersion intermediaryVersion;
 
-	public MavenBuildVersion(String maven) {
-		super(maven);
-		String version = maven.split(":")[2];
-
-		if (version.contains("+build.")) {
-			separator = "+build.";
-		} else {
-			separator = ".";
-		}
-		build = Integer.parseInt(version.substring(version.lastIndexOf(".") + 1));
-
+	public InstallationInfoV3(LoaderInfoV3 loaderInfo, GameVersion gameVersion, MavenVersion intermediary) {
+		this.loaderInfo = loaderInfo;
+		this.gameVersion = gameVersion;
+		this.intermediaryVersion = intermediary;
 	}
 
-	public String getSeparator() {
-		return separator;
+	public LoaderInfoV3 loaderInfo() {
+		return loaderInfo;
 	}
 
-	public int getBuild() {
-		return build;
+	public GameVersion gameVersion() {
+		return gameVersion;
+	}
+
+	public MavenVersion intermediaryVersion() {
+		return intermediaryVersion;
 	}
 }

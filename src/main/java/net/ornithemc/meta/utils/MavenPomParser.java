@@ -18,7 +18,7 @@
 
 package net.ornithemc.meta.utils;
 
-import net.ornithemc.meta.web.models.BaseVersion;
+import net.ornithemc.meta.web.models.Version;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -49,11 +49,11 @@ public class MavenPomParser {
 		this.require = require;
 	}
 
-	public <T extends BaseVersion> List<T> getDependencies(Function<String, T> factory, String version) throws IOException, XMLStreamException {
+	public <T extends Version> List<T> getDependencies(Function<String, T> factory, String version) throws IOException, XMLStreamException {
 		return getDependencies(factory, version, dependency -> true);
 	}
 
-	public <T extends BaseVersion> List<T> getDependencies(Function<String, T> factory, String version, DependencyFilter<T> filter) throws IOException, XMLStreamException {
+	public <T extends Version> List<T> getDependencies(Function<String, T> factory, String version, DependencyFilter<T> filter) throws IOException, XMLStreamException {
 		List<T> versions = new ArrayList<>();
 
 		try {
@@ -108,7 +108,7 @@ public class MavenPomParser {
 		return Collections.unmodifiableList(versions);
 	}
 	
-	public interface DependencyFilter<T extends BaseVersion> {
+	public interface DependencyFilter<T extends Version> {
 		boolean test(T version);
 	}
 

@@ -18,37 +18,31 @@
 
 package net.ornithemc.meta.web.models;
 
-import net.ornithemc.meta.utils.FeatherVersionParser;
+public class MavenGameVersionWithBuildNumber extends MavenGameVersion {
 
-public class MavenBuildGameVersion extends MavenBuildVersion {
+	public String separator;
+	public int build;
 
-	String gameVersion;
-
-	public MavenBuildGameVersion(String maven) {
+	public MavenGameVersionWithBuildNumber(String maven) {
 		super(maven);
-		gameVersion = new FeatherVersionParser(maven.split(":")[2]).getMinecraftVersion();
 
-	}
-
-	public String getGameVersion() {
-		return gameVersion;
-	}
-
-	@Override
-	public String getVersionNoSide() {
-		if (versionNoSide == null) {
-			versionNoSide = gameVersion;
-
-			if (versionNoSide.endsWith("-client") || versionNoSide.endsWith("-server")) {
-				versionNoSide = versionNoSide.substring(0, versionNoSide.length() - 7);
-			}
+		if (version.contains("+build.")) {
+			separator = "+build.";
+		} else {
+			separator = ".";
 		}
 
-		return versionNoSide;
+		build = Integer.parseInt(version.substring(version.lastIndexOf(separator) + separator.length()));
+
+		_gameVersion = new GameVersion(version.substring(0, version.lastIndexOf(separator)), stable);
+		gameVersion = _gameVersion.id();
 	}
 
-	@Override
-	public boolean test(String s) {
-		return getGameVersion().equals(s);
+	public String separator() {
+		return separator;
+	}
+
+	public int buildNumber() {
+		return build;
 	}
 }

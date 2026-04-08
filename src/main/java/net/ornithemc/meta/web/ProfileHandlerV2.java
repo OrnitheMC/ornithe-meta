@@ -61,7 +61,7 @@ public class ProfileHandlerV2 {
 	}
 
 	private static String getJsonFileName(LoaderInfoV2 info, String ext) {
-		return String.format("ornithe-loader-%s-%s.%s", info.getLoader().getVersion(), info.getCalamus().getVersion(), ext);
+		return String.format("ornithe-loader-%s-%s.%s", info.loaderVersion().id(), info.calamusVersion().id(), ext);
 	}
 
 	private static CompletableFuture<InputStream> profileJson(LoaderInfoV2 info) {
@@ -78,7 +78,7 @@ public class ProfileHandlerV2 {
 	}
 
 	private static InputStream packageZip(LoaderInfoV2 info, InputStream profileJson) {
-		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
+		String profileName = String.format("ornithe-loader-%s-%s", info.loaderVersion().id(), info.calamusVersion().id());
 
 		try {
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -110,13 +110,13 @@ public class ProfileHandlerV2 {
 	private static JsonNode buildProfileJson(LoaderInfoV2 info, String side) {
 		JsonNode launcherMeta = info.getLauncherMeta();
 
-		String profileName = String.format("ornithe-loader-%s-%s", info.getLoader().getVersion(), info.getCalamus().getVersion());
+		String profileName = String.format("ornithe-loader-%s-%s", info.loaderVersion().id(), info.calamusVersion().id());
 
 		JsonNode librariesNode = launcherMeta.get("libraries");
 		// Build the libraries array with the existing libs + loader and calamus
 		ArrayNode libraries = (ArrayNode) librariesNode.get("common");
-		libraries.add(getLibrary(info.getCalamus().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
-		libraries.add(getLibrary(info.getLoader().getMaven(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.calamusVersion().mavenNotation(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
+		libraries.add(getLibrary(info.loaderVersion().mavenNotation(), VersionDatabaseOld.ORNITHE_MAVEN_URL));
 
 		if (librariesNode.has(side)) {
 			libraries.addAll((ArrayNode) librariesNode.get(side));
@@ -126,7 +126,7 @@ public class ProfileHandlerV2 {
 
 		ObjectNode profile = OrnitheMeta.MAPPER.createObjectNode();
 		profile.put("id", profileName);
-		profile.put("inheritsFrom", info.getCalamus().getVersion());
+		profile.put("inheritsFrom", info.calamusVersion().id());
 		profile.put("releaseTime", currentTime);
 		profile.put("time", currentTime);
 		profile.put("type", "release");

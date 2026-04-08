@@ -20,8 +20,8 @@ package net.ornithemc.meta.web.models;
 
 public interface LoaderInfoBase {
 
-	LoaderType getLoaderType();
+	LoaderType loaderType();
 
-	MavenBuildVersion getLoader();
+	MavenVersion loaderVersion();
 
 }

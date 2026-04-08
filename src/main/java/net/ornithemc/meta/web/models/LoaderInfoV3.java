@@ -24,17 +24,15 @@ import org.jetbrains.annotations.Nullable;
 
 public class LoaderInfoV3 implements LoaderInfoBase {
 
-	LoaderType type;
-	MavenBuildVersion loader;
-	MavenVersion intermediary;
+	public final LoaderType type;
+	public final MavenVersion loader;
 
 	@Nullable
 	JsonNode launcherMeta;
 
-	public LoaderInfoV3(LoaderType type, MavenBuildVersion loader, MavenVersion intermediary) {
+	public LoaderInfoV3(LoaderType type, MavenVersion loader) {
 		this.type = type;
 		this.loader = loader;
-		this.intermediary = intermediary;
 	}
 
 	public LoaderInfoV3 populateMeta() {
@@ -43,26 +41,13 @@ public class LoaderInfoV3 implements LoaderInfoBase {
 	}
 
 	@Override
-	public LoaderType getLoaderType() {
+	public LoaderType loaderType() {
 		return type;
 	}
 
 	@Override
-	public MavenBuildVersion getLoader() {
+	public MavenVersion loaderVersion() {
 		return loader;
-	}
-
-	public MavenVersion getIntermediary() {
-		return intermediary;
-	}
-
-	public String getGame(String side) {
-		String version = intermediary.getVersion();
-		if (version.endsWith(side)) {
-			version = version.substring(0, version.length() - (side.length() + 1));
-		}
-
-		return version;
 	}
 
 	@Nullable
