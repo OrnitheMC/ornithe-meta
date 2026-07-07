@@ -236,7 +236,7 @@ public class VersionDatabase {
 				// Sorts in the order of minecraft release dates
 				value = new ArrayList<>(value);
 				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.getVersionNoSide())));
-				value.forEach(version -> version.setStable(true));
+				value.forEach(version -> version.setStable(isIntermediaryStable(gen, version)));
 
 				// Remove entries that do not match a valid mc version.
 				value.removeIf(o -> {
@@ -312,6 +312,10 @@ public class VersionDatabase {
 		raven.removeIf(p.apply("v3 raven"));
 		sparrow.removeIf(p.apply("v3 sparrow"));
 		nests.removeIf(p.apply("v3 nests"));
+	}
+
+	private boolean isIntermediaryStable(int generation, MavenVersion version) {
+		return config.unstableIntermediaryVersions.stream().noneMatch(uv -> uv.test(generation, version.getVersionNoSide()));
 	}
 
 	public VersionManifest getManifest(int generation) {

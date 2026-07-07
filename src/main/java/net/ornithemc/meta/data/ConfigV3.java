@@ -19,6 +19,8 @@
 package net.ornithemc.meta.data;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 import net.ornithemc.meta.OrnitheMeta;
 
@@ -28,6 +30,7 @@ public class ConfigV3 {
 
 	public int latestIntermediaryGeneration = -1;
 	public int stableIntermediaryGeneration = -1;
+	public List<UnstableIntermediaryVersion> unstableIntermediaryVersions = Collections.emptyList();
 
 	public static ConfigV3 load() throws Exception {
 		return OrnitheMeta.MAPPER.readValue(FILE, ConfigV3.class);
