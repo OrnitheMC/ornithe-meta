@@ -50,9 +50,10 @@ public class VersionDatabaseOld {
 	private VersionDatabaseOld() {
 	}
 
-	public static VersionDatabaseOld generate() throws IOException, XMLStreamException {
+	public static void generate() throws IOException, XMLStreamException {
 		long start = System.currentTimeMillis();
 		VersionDatabaseOld database = new VersionDatabaseOld();
+		OrnitheMeta.databaseOld = database;
 		database.calamus = CALAMUS_PARSER.getVersions(MavenVersion::new);
 		database.loader = LOADER_PARSER.getVersions(MavenBuildVersion::new, list -> {
 			for (BaseVersion version : list) {
@@ -65,14 +66,13 @@ public class VersionDatabaseOld {
 		database.installer = INSTALLER_PARSER.getVersions(MavenUrlVersion::new);
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
-		return database;
 	}
 
 	private void loadMcData() throws IOException {
 		if (calamus == null) {
 			throw new RuntimeException("Mappings are null");
 		}
-		VersionManifest manifest = VersionManifest.forGenSorted(1);
+		VersionManifest manifest = VersionManifest.forGen(1);
 
 		//Sorts in the order of minecraft release dates
 		calamus = new ArrayList<>(calamus);

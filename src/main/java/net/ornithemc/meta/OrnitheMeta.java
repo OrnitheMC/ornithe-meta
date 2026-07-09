@@ -51,8 +51,8 @@ public class OrnitheMeta
 
 	private static void update(){
 		try {
-			databaseOld = VersionDatabaseOld.generate();
-			database = VersionDatabase.generate();
+			VersionDatabaseOld.generate();
+			VersionDatabase.generate();
 		} catch (Exception e) {
 			Logger.error(e);
 		}

@@ -186,12 +186,13 @@ public class VersionDatabase {
 		this.loader = new Int2ObjectOpenHashMap<>();
 	}
 
-	public static VersionDatabase generate() throws Exception {
+	public static void generate() throws Exception {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
+		OrnitheMeta.database = database;
 		config = ConfigV3.load();
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
-			database.manifests.put(generation, VersionManifest.forGenSorted(generation));
+			database.manifests.put(generation, VersionManifest.forGen(generation));
 			database.intermediary.put(generation, intermediaryMetadataParser(generation).getVersions(MavenVersion::new));
 			database.feather.put(generation, featherMetadataParser(generation).getVersions(MavenBuildGameVersion::new));
 			database.osl.put(generation, oslMetadataParser(generation).getVersions(MavenVersion::new));
@@ -217,7 +218,6 @@ public class VersionDatabase {
 		database.libraryUpgrades = LibraryUpgradesV3.reload();
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
-		return database;
 	}
 
 	private static boolean isPublicLoaderVersion(LoaderType type, BaseVersion version) {

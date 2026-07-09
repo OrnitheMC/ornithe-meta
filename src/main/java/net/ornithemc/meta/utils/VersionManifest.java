@@ -18,53 +18,249 @@
 
 package net.ornithemc.meta.utils;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonIncludeProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.vdurmont.semver4j.Semver;
-import net.ornithemc.meta.OrnitheMeta;
-import org.apache.commons.io.IOUtils;
-
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.IOUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIncludeProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import com.vdurmont.semver4j.Semver;
+
+import net.ornithemc.meta.OrnitheMeta;
+
 @JsonIgnoreProperties({"$schema", "latest"})
 public class VersionManifest {
 
-	private final List<Version> versions;
+	private static final List<VersionManifest> MANIFESTS = new ArrayList<>();
+	private static final Path DIRECTORY = Paths.get("manifest");
+
+	private static void saveToMemory(int generation, VersionManifest manifest) {
+		while (MANIFESTS.size() < generation) {
+			MANIFESTS.add(null);
+		}
+
+		MANIFESTS.set(generation - 1, manifest);
+	}
+
+	private static void saveToCache(int generation, Path file, VersionManifest manifest) throws IOException {
+		Files.createDirectories(file.getParent());
+		
+		try (BufferedWriter bw = Files.newBufferedWriter(file)) {
+			OrnitheMeta.MAPPER.writeValue(bw, manifest);
+		}
+	}
+
+	private static VersionManifest fromMemory(int generation) {
+		if (MANIFESTS.size() >= generation) {
+			return MANIFESTS.get(generation - 1).init(generation);
+		} else {
+			return null;
+		}
+	}
+
+	private static VersionManifest fromCache(int generation, Path file) {
+		try (BufferedReader br = Files.newBufferedReader(file)) {
+			return OrnitheMeta.MAPPER.readValue(br, VersionManifest.class).init(generation);
+		} catch (NoSuchFileException e) {
+			// ignore
+		} catch (IOException e) {
+			OrnitheMeta.LOGGER.warn("error reading cached version manifest for gen" + generation, e);
+		}
+
+		return null;
+	}
+
+	private static VersionManifest fromRemote(int generation, Path file) throws IOException {
+		if (generation < 1) {
+			throw new IllegalArgumentException("invalid generation " + generation);
+		}
+
+		String url = String.format("https://ornithemc.net/mc-versions/gen%d/version_manifest.json", generation);
+		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
+
+		VersionManifest manifest = OrnitheMeta.MAPPER.readValue(json, VersionManifest.class).init(generation);
+
+		try {
+			saveToCache(generation, file, manifest);
+		} catch (IOException e) {
+			OrnitheMeta.LOGGER.warn("unable for save version manifest for gen" + generation + " to cache");
+		}
+
+		return manifest;
+	}
+
+	public static VersionManifest forGen(int generation) throws IOException {
+		VersionManifest manifest = null;
+
+		Path dir = DIRECTORY.resolve("gen" + generation);
+		Path file = dir.resolve("version_manifest.json");
+
+		Exception ce = null;
+		Exception re = null;
+
+		boolean shouldPrioritizeCache = FileCache.shouldPrioritize(file);
+
+		if (shouldPrioritizeCache) {
+			try {
+				manifest = fromMemory(generation);
+
+				if (manifest == null) {
+					manifest = fromCache(generation, file);
+				}
+			} catch (Exception e) {
+				ce = e;
+			}
+		}
+
+		if (manifest == null) {
+			try {
+				manifest = fromRemote(generation, file);
+			} catch (Exception e) {
+				re = e;
+			}
+		}
+
+		if (manifest == null) {
+			try {
+				manifest = fromCache(generation, file);
+			} catch (Exception e) {
+				ce = e;
+			}
+		}
+
+		if (manifest == null) {
+			if (ce != null) {
+				OrnitheMeta.LOGGER.warn("unable to read version manifest from cache for gen" + generation, ce);
+			}
+			if (re != null) {
+				throw new IllegalStateException("unable to fetch version manifest from remote for gen" + generation + ", and it is not in the cache", re);
+			}
+		} else {
+			saveToMemory(generation, manifest);
+		}
+
+		return manifest;
+	}
+
+	public final List<Version> versions;
 	private final Map<String, VersionDetails> details;
+
+	private Path directory;
 
 	public VersionManifest(@JsonProperty("versions") List<Version> versions) {
 		this.versions = versions;
 		this.details = new ConcurrentHashMap<>();
 	}
 
-	public static VersionManifest forGen(int generation) throws IOException {
-		String url;
-		if (generation < 1) {
-			throw new IllegalArgumentException("invalid generation " + generation);
+	private VersionManifest init(int generation) {
+		this.directory = DIRECTORY.resolve("gen" + generation);
+
+		if (this.versions != null) {
+			// Order by release time
+			this.versions.sort(Comparator.comparing(Version::releaseTime).reversed());
+
+			return this;
 		} else {
-			url = String.format("https://ornithemc.net/mc-versions/gen%d/version_manifest.json", generation);
+			return null;
 		}
-		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
-		return OrnitheMeta.MAPPER.readValue(json, VersionManifest.class);
 	}
 
-	public static VersionManifest forGenSorted(int generation) throws IOException {
-		List<Version> versions = new ArrayList<>(forGen(generation).versions);
+	private void saveDetailsToCache(Version version, Path file, VersionDetails details) throws IOException {
+		Files.createDirectories(file.getParent());
+		
+		try (BufferedWriter bw = Files.newBufferedWriter(file)) {
+			OrnitheMeta.MAPPER.writeValue(bw, details);
+		}
+	}
 
-		// Order by release time
-		versions.sort(Comparator.comparing(Version::releaseTime).reversed());
+	private VersionDetails readDetailsFromCache(Version version, Path file) {
+		try (BufferedReader br = Files.newBufferedReader(file)) {
+			return OrnitheMeta.MAPPER.readValue(br, VersionDetails.class);
+		} catch (NoSuchFileException e) {
+			// ignore
+		} catch (IOException e) {
+			OrnitheMeta.LOGGER.warn("error reading cached version details for " + version.id(), e);
+		}
 
-		return new VersionManifest(versions);
+		return null;
+	}
+
+	private VersionDetails readDetailsFromRemote(Version version, Path file) throws IOException {
+		String url = version.details;;
+		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
+
+		VersionDetails details = OrnitheMeta.MAPPER.readValue(json, VersionDetails.class);
+
+		try {
+			saveDetailsToCache(version, file, details);
+		} catch (IOException e) {
+			OrnitheMeta.LOGGER.warn("unable for save version details for " + version.id() + " to cache");
+		}
+
+		return details;
+	}
+
+	private VersionDetails readDetails(Version version) {
+		VersionDetails details = null;
+
+		Path file = this.directory.resolve(version.id() + "-details.json");
+
+		Exception ce = null;
+		Exception re = null;
+
+		boolean shouldPrioritizeCache = FileCache.shouldPrioritize(file, version.detailsSha1);
+
+		if (shouldPrioritizeCache) {
+			try {
+				details = readDetailsFromCache(version, file);
+			} catch (Exception e) {
+				ce = e;
+			}
+		}
+
+		if (details == null) {
+			try {
+				details = readDetailsFromRemote(version, file);
+			} catch (Exception e) {
+				re = e;
+			}
+		}
+
+		if (details == null) {
+			try {
+				details = readDetailsFromCache(version, file);
+			} catch (Exception e) {
+				ce = e;
+			}
+		}
+
+		if (details == null) {
+			if (ce != null) {
+				OrnitheMeta.LOGGER.warn("unable to read version details from cache for " + version.id(), ce);
+			}
+			if (re != null) {
+				throw new IllegalStateException("unable to fetch version details from remote for " + version.id() + ", and it is not in the cache", re);
+			}
+		}
+
+		return details;
 	}
 
 	private VersionDetails versionDetails(String id) {
@@ -72,16 +268,15 @@ public class VersionManifest {
 			int index = indexOf(id);
 			Version version = versions.get(index);
 
-			if (version == null) {
-				return null;
+			if (version != null) {
+				try {
+					return this.readDetails(version);
+				} catch (Exception e) {
+					OrnitheMeta.LOGGER.warn("error while reading version details for " + version.id(), e);
+				}
 			}
 
-			try {
-				String json = IOUtils.toString(new URL(version.details), StandardCharsets.UTF_8);
-				return OrnitheMeta.MAPPER.readValue(json, VersionDetails.class);
-			} catch (IOException e) {
-				return null;
-			}
+			return null;
 		});
 	}
 
