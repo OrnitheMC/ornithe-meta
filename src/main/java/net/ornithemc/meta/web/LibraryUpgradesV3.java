@@ -25,6 +25,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import com.vdurmont.semver4j.Semver;
@@ -52,6 +54,7 @@ public class LibraryUpgradesV3 {
 		return cache;
 	}
 
+	@JsonInclude(Include.NON_NULL)
 	public static class LibraryUpgrade {
 
 		public String name;
@@ -137,6 +140,24 @@ public class LibraryUpgradesV3 {
 			}
 
 			return true;
+		}
+
+		public LibraryUpgrade forIntermediaryGeneration(int generation) {
+			if (this.minIntermediaryGeneration != null && generation < this.minIntermediaryGeneration) {
+				return null;
+			}
+			if (this.maxIntermediaryGeneration != null && generation > this.maxIntermediaryGeneration) {
+				return null;
+			}
+
+			LibraryUpgrade lib = new LibraryUpgrade();
+
+			lib.name = this.name;
+			lib.url = this.url;
+			lib.minGameVersion = this.minGameVersion;
+			lib.maxGameVersion = this.maxGameVersion;
+
+			return lib;
 		}
 
 		public Library asLibrary() {

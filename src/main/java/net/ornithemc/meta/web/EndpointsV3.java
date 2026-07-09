@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -76,6 +77,7 @@ public class EndpointsV3 {
 		jsonGet("/nests", context -> withLimitSkip(context, OrnitheMeta.database.nests));
 		jsonGet("/nests/:game_version", context -> withLimitSkip(context, filter(context, OrnitheMeta.database.nests)));
 
+		jsonGetF("/libraries/", generation -> context -> withLimitSkip(context, getLibraryUpgrades(context, generation)));
 		jsonGetF("/libraries/:game_version", generation -> context -> withLimitSkip(context, getLibraries(context, generation)));
 
 		jsonGetF("/fabric-loader", generation -> context -> withLimitSkip(context, OrnitheMeta.database.getLoader(generation, LoaderType.FABRIC)));
@@ -156,6 +158,13 @@ public class EndpointsV3 {
 			return Collections.emptyList();
 		}
 		return versionList.stream().filter(t -> t.test(context.pathParam("game_version"))).collect(Collectors.toList());
+	}
+
+	private static List<LibraryUpgrade> getLibraryUpgrades(Context context, int generation) {
+		return OrnitheMeta.database.libraryUpgrades.stream()
+			.map(lib -> lib.forIntermediaryGeneration(generation))
+			.filter(Objects::nonNull)
+			.collect(Collectors.toList());
 	}
 
 	private static List<Library> getLibraries(Context context, int generation) {

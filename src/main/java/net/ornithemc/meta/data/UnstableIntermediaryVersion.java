@@ -25,7 +25,7 @@ import net.ornithemc.meta.utils.VersionManifest;
 
 public class UnstableIntermediaryVersion {
 
-	private final int intermediaryGeneration = VersionDatabase.config.latestIntermediaryGeneration;
+	private int intermediaryGeneration;
 
 	public String gameVersion;
 	public String minGameVersion;
@@ -37,6 +37,8 @@ public class UnstableIntermediaryVersion {
 		if (this.validated) {
 			return;
 		}
+
+		intermediaryGeneration = VersionDatabase.config.latestIntermediaryGeneration;
 
 		if (gameVersion != null && (minGameVersion != null || maxGameVersion != null)) {
 			throw new RuntimeException("cannot specify both an exact game version and game version bounds!");
