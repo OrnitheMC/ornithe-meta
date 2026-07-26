@@ -108,33 +108,26 @@ public class EndpointsV3 {
 
 	private static <T> void jsonGetS(String path, Function<Integer, Supplier<T>> supplier) {
 		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
-			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, supplier.apply(generation));
-
-			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
-				WebServer.javalin.get("/v3/versions" + path, handler);
-			}
+			WebServer.jsonGet("/v3/versions/gen" + generation + path, supplier.apply(generation));
 		}
+
+		WebServer.jsonGet("/v3/versions" + path, () -> supplier.apply(VersionDatabase.config.stableIntermediaryGeneration).get());
 	}
 
 	private static <T> void jsonGetF(String path, Function<Integer, Function<Context, T>> function) {
 		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
-			Handler handler = WebServer.jsonGet("/v3/versions/gen" + generation + path, function.apply(generation));
-
-			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
-				WebServer.javalin.get("/v3/versions" + path, handler);
-			}
+			WebServer.jsonGet("/v3/versions/gen" + generation + path, function.apply(generation));
 		}
+
+		WebServer.jsonGet("/v3/versions" + path, ctx -> function.apply(VersionDatabase.config.stableIntermediaryGeneration).apply(ctx));
 	}
 
 	private static <T> void jsonGetH(String path, Function<Integer, Handler> function) {
 		for (int generation = 1; generation <= VersionDatabase.config.latestIntermediaryGeneration; generation++) {
-			Handler handler = function.apply(generation);
-			WebServer.javalin.get("/v3/versions/gen" + generation + path, handler);
-
-			if (generation == VersionDatabase.config.stableIntermediaryGeneration) {
-				WebServer.javalin.get("/v3/versions" + path, handler);
-			}
+			WebServer.javalin.get("/v3/versions/gen" + generation + path, function.apply(generation));
 		}
+
+		WebServer.javalin.get("/v3/versions" + path, ctx -> function.apply(VersionDatabase.config.stableIntermediaryGeneration).handle(ctx));
 	}
 
 	private static <T> List<T> withLimitSkip(Context context, List<T> list) {
