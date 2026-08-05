@@ -106,7 +106,7 @@ public class VersionManifest {
 		return manifest;
 	}
 
-	public static VersionManifest forGen(int generation) throws IOException {
+	public static VersionManifest forGen(int generation) {
 		VersionManifest manifest = null;
 
 		Path dir = DIRECTORY.resolve("gen" + generation);

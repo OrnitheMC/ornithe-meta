@@ -89,7 +89,7 @@ public class LibraryUpgradesV3 {
 
 			if (minGameVersion != null || maxGameVersion != null) {
 				for (int generation = minGen; generation <= maxGen; generation++) {
-					VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+					VersionManifest manifest = VersionDatabase.getManifest(generation);
 
 					Semver minVersion = (minGameVersion == null) ? null : manifest.normalize(minGameVersion);
 					Semver maxVersion = (maxGameVersion == null) ? null : manifest.normalize(maxGameVersion);
@@ -121,7 +121,7 @@ public class LibraryUpgradesV3 {
 				return false;
 			}
 
-			VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+			VersionManifest manifest = VersionDatabase.getManifest(generation);
 			Semver version = manifest.normalize(gameVersion);
 
 			if (this.minGameVersion != null) {

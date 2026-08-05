@@ -25,6 +25,7 @@ import com.vdurmont.semver4j.Semver;
 
 import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.data.VersionDatabase;
+import net.ornithemc.meta.utils.VersionManifest;
 import net.ornithemc.meta.web.models.LoaderInfoV3;
 import net.ornithemc.meta.web.models.LoaderType;
 import org.apache.commons.io.IOUtils;
@@ -183,8 +184,10 @@ public class ProfileHandlerV3 {
 		profile.set("arguments", arguments);
 		profile.set("libraries", libraries);
 
-		Semver version = OrnitheMeta.database.getManifest(generation).normalize(info.getGame(side));
-		Semver boundary = OrnitheMeta.database.getManifest(generation).normalize("17w15a");
+		VersionManifest manifest = VersionDatabase.getManifest(generation);
+
+		Semver version = manifest.normalize(info.getGame(side));
+		Semver boundary = manifest.normalize("17w15a");
 
 		if (version.compareTo(boundary) < 0 && "client".equals(side)) {
 			Optional<Semver> log4jUpgrade = OrnitheMeta.database.libraryUpgrades.stream()
@@ -198,7 +201,7 @@ public class ProfileHandlerV3 {
 				Semver log4jBoundary = new Semver("2.8.1");
 
 				if (log4jVersion.compareTo(log4jBoundary) >= 0) {
-					profile.set("logging", OrnitheMeta.database.getManifest(generation).getLoggingConfig("17w15a"));
+					profile.set("logging", manifest.getLoggingConfig("17w15a"));
 				}
 			}
 		}

@@ -186,10 +186,9 @@ public class VersionDatabase {
 		this.loader = new Int2ObjectOpenHashMap<>();
 	}
 
-	public static void generate() throws Exception {
+	public static VersionDatabase generate() throws Exception {
 		long start = System.currentTimeMillis();
 		VersionDatabase database = new VersionDatabase();
-		OrnitheMeta.database = database;
 		config = ConfigV3.load();
 		for (int generation = 1; generation <= config.latestIntermediaryGeneration; generation++) {
 			database.manifests.put(generation, VersionManifest.forGen(generation));
@@ -218,6 +217,7 @@ public class VersionDatabase {
 		database.libraryUpgrades = LibraryUpgradesV3.reload();
 		database.loadMcData();
 		OrnitheMeta.LOGGER.info("DB update took {}ms", System.currentTimeMillis() - start);
+		return database;
 	}
 
 	private static boolean isPublicLoaderVersion(LoaderType type, BaseVersion version) {
@@ -318,8 +318,8 @@ public class VersionDatabase {
 		return config.unstableIntermediaryVersions.stream().noneMatch(uv -> uv.test(generation, version.getVersionNoSide()));
 	}
 
-	public VersionManifest getManifest(int generation) {
-		return manifests.get(generation);
+	public static VersionManifest getManifest(int generation) {
+		return OrnitheMeta.database == null ? VersionManifest.forGen(generation) : OrnitheMeta.database.manifests.get(generation);
 	}
 
 	public List<BaseVersion> getGame(int generation) {

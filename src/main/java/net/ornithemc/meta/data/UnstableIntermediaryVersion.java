@@ -20,7 +20,6 @@ package net.ornithemc.meta.data;
 
 import com.vdurmont.semver4j.Semver;
 
-import net.ornithemc.meta.OrnitheMeta;
 import net.ornithemc.meta.utils.VersionManifest;
 
 public class UnstableIntermediaryVersion {
@@ -45,7 +44,7 @@ public class UnstableIntermediaryVersion {
 		}
 
 		if (minGameVersion != null || maxGameVersion != null) {
-			VersionManifest manifest = OrnitheMeta.database.getManifest(intermediaryGeneration);
+			VersionManifest manifest = VersionDatabase.getManifest(intermediaryGeneration);
 
 			Semver minVersion = (minGameVersion == null) ? null : manifest.normalize(minGameVersion);
 			Semver maxVersion = (maxGameVersion == null) ? null : manifest.normalize(maxGameVersion);
@@ -72,7 +71,7 @@ public class UnstableIntermediaryVersion {
 			return false;
 		}
 
-		VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+		VersionManifest manifest = VersionDatabase.getManifest(generation);
 		Semver version = manifest.normalize(gameVersion);
 
 		if (this.gameVersion != null) {

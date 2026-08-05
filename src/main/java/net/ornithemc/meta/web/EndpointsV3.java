@@ -166,7 +166,7 @@ public class EndpointsV3 {
 		}
 
 		String gameVersion = context.pathParam("game_version");
-		Semver version = OrnitheMeta.database.getManifest(generation).normalize(gameVersion);
+		Semver version = VersionDatabase.getManifest(generation).normalize(gameVersion);
 
 		if (version == null) {
 			return null;
@@ -262,7 +262,7 @@ public class EndpointsV3 {
 			return null;
 		}
 
-		VersionManifest manifest = OrnitheMeta.database.getManifest(generation);
+		VersionManifest manifest = VersionDatabase.getManifest(generation);
 
 		String module = context.pathParam("module");
 		String gameVersion = context.pathParam("game_version");
