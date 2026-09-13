@@ -69,7 +69,7 @@ public class FileCache {
 			sb.append(Integer.toString((b & 0xFF) + 0x100, 16).substring(1));
 		}
 
-		return sb.toString().equals(sha1);
+		return !sb.toString().equals(sha1);
 	}
 
 	public static boolean shouldPrioritize(Path file) {

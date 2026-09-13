@@ -182,12 +182,9 @@ public class VersionManifest {
 		}
 	}
 
-	private void saveDetailsToCache(Version version, Path file, VersionDetails details) throws IOException {
+	private void saveDetailsToCache(Version version, Path file, String details) throws IOException {
 		Files.createDirectories(file.getParent());
-		
-		try (BufferedWriter bw = Files.newBufferedWriter(file)) {
-			OrnitheMeta.MAPPER.writeValue(bw, details);
-		}
+		Files.write(file, details.getBytes());
 	}
 
 	private VersionDetails readDetailsFromCache(Version version, Path file) {
@@ -203,13 +200,13 @@ public class VersionManifest {
 	}
 
 	private VersionDetails readDetailsFromRemote(Version version, Path file) throws IOException {
-		String url = version.details;;
+		String url = version.details;
 		String json = IOUtils.toString(new URL(url), StandardCharsets.UTF_8);
 
 		VersionDetails details = OrnitheMeta.MAPPER.readValue(json, VersionDetails.class);
 
 		try {
-			saveDetailsToCache(version, file, details);
+			saveDetailsToCache(version, file, json);
 		} catch (IOException e) {
 			OrnitheMeta.LOGGER.warn("unable for save version details for " + version.id() + " to cache");
 		}
