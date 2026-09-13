@@ -245,6 +245,7 @@ public class VersionDatabase {
 				// Sorts in the order of minecraft release dates
 				value.sort(Comparator.comparingInt(o -> manifest.indexOf(o.id())));
 				value.forEach(version -> version.setStable(isIntermediaryStable(gen, version)));
+				value.forEach(version -> version.setEnvironment(manifest.getEnvironment(version.id())));
 
 				return value;
 			});

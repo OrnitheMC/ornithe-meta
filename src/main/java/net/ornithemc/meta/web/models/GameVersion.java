@@ -22,10 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class GameVersion extends Version {
 
-	// TODO: fill this properly
-	// unfortunately it requires parsing the version details for ALL versions
-	@JsonIgnore
-	String environment;
+	public String environment;
 	@JsonIgnore
 	GameEnvironment _environment;
 
