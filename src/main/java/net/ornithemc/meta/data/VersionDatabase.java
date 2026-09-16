@@ -166,7 +166,9 @@ public class VersionDatabase {
 	private final Int2ObjectMap<List<MavenVersion>> osl;
 	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslDependencies;
 	private final Int2ObjectMap<Map<String, List<MavenVersion>>> oslModules;
-	private final Int2ObjectMap<Map<LoaderType, List<MavenVersion>>> loader;
+	// loader versions do not use build numbers anymore but we use this type
+	// to keep compatibility with installer versions that expect related fields
+	private final Int2ObjectMap<Map<LoaderType, List<MavenVersionWithBuildNumber>>> loader;
 
 	public IntermediaryGenerations intermediaryGenerations;
 	public List<MavenGameVersionWithBuildNumber> raven;
@@ -208,8 +210,8 @@ public class VersionDatabase {
 				database.oslModules.get(generation).put(module, oslModuleMetadataParser(generation, module).getVersions(MavenVersion::new));
 			}
 			database.loader.put(generation, new EnumMap<>(LoaderType.class));
-			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenVersion::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
-			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenVersion::new, filterLoaderVersions(generation, LoaderType.QUILT)));
+			database.loader.get(generation).put(LoaderType.FABRIC, FABRIC_LOADER_METADATA_PARSER.getVersions(MavenVersionWithBuildNumber::new, filterLoaderVersions(generation, LoaderType.FABRIC)));
+			database.loader.get(generation).put(LoaderType.QUILT, QUILT_LOADER_METADATA_PARSER.getVersions(MavenVersionWithBuildNumber::new, filterLoaderVersions(generation, LoaderType.QUILT)));
 		}
 		database.intermediaryGenerations = new IntermediaryGenerations(config.latestIntermediaryGeneration, config.stableIntermediaryGeneration);
 		database.raven = RAVEN_METADATA_PARSER.getVersions(MavenGameVersionWithBuildNumber::new);
