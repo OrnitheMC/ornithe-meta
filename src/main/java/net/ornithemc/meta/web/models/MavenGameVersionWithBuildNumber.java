@@ -36,6 +36,7 @@ public class MavenGameVersionWithBuildNumber extends MavenGameVersion {
 
 		_gameVersion = new GameVersion(version.substring(0, version.lastIndexOf(separator)), stable);
 		gameVersion = _gameVersion.id();
+		environment = _gameVersion.environment().id();
 	}
 
 	public String separator() {

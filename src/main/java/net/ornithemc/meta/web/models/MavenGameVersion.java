@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class MavenGameVersion extends MavenVersion {
 
 	public String gameVersion;
+	public String environment;
 	@JsonIgnore
 	GameVersion _gameVersion;
 
@@ -31,6 +32,7 @@ public class MavenGameVersion extends MavenVersion {
 
 		_gameVersion = new GameVersion(version, stable);
 		gameVersion = _gameVersion.id();
+		environment = _gameVersion.environment().id();
 	}
 
 	public GameVersion gameVersion() {
